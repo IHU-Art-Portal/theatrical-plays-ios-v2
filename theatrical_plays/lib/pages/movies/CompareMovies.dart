@@ -183,7 +183,7 @@ class _CompareMoviesState extends State<CompareMovies> {
         Response data = await get(uri, headers: {
           "Accept": "application/json",
           "authorization":
-          "${await AuthorizationStore.getStoreValue("authorization")}"
+              "${await AuthorizationStore.getStoreValue("authorization")}"
         });
         var jsonData = jsonDecode(data.body);
 
@@ -194,8 +194,8 @@ class _CompareMoviesState extends State<CompareMovies> {
           ));
           break;
         } else {
-          compareMovie = CompMovie(
-              item.id, item.title, jsonData['data'][0]['priceRange']);
+          compareMovie =
+              CompMovie(item.id, item.title, jsonData['data'][0]['priceRange']);
           compareMovies.add(compareMovie!);
         }
       }
@@ -211,8 +211,8 @@ class _CompareMoviesState extends State<CompareMovies> {
     return Container(
         child: FutureBuilder<List<CompMovie>>(
             future: loadCompareMovie(),
-            builder:
-                (BuildContext context, AsyncSnapshot<List<CompMovie>> snapshot) {
+            builder: (BuildContext context,
+                AsyncSnapshot<List<CompMovie>> snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Loading();
               } else if (snapshot.hasError) {
@@ -237,18 +237,19 @@ class _CompareMoviesState extends State<CompareMovies> {
           'Ticket prices',
           style: TextStyle(color: MyColors().cyan),
         ),
-        backgroundColor: MyColors().black, systemOverlayStyle: SystemUiOverlayStyle.light,
+        backgroundColor: MyColors().black,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
       ),
       backgroundColor: MyColors().black,
       body: Container(
         child: SfCartesianChart(
             margin: EdgeInsets.fromLTRB(20, 30, 20, 30),
-            series: <ChartSeries>[
+            series: <CartesianSeries>[
               ColumnSeries<ChartCompMovie, String>(
                   dataSource: chartMovies,
                   borderRadius: BorderRadius.all(Radius.circular(30)),
                   pointColorMapper: (ChartCompMovie movie, _) =>
-                  movie.columnColor,
+                      movie.columnColor,
                   xValueMapper: (ChartCompMovie movie, _) => movie.title,
                   yValueMapper: (ChartCompMovie movie, _) => movie.priceRange)
             ],

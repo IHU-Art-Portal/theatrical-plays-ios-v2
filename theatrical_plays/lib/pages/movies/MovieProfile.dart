@@ -157,7 +157,7 @@ class _MovieProfile extends State<MovieProfile> {
                       TextSpan(
                           text: "Duration: ",
                           style:
-                          TextStyle(color: MyColors().cyan, fontSize: 18)),
+                              TextStyle(color: MyColors().cyan, fontSize: 18)),
                       TextSpan(
                           text: movie.duration,
                           style: TextStyle(color: Colors.white, fontSize: 18)),
@@ -171,7 +171,7 @@ class _MovieProfile extends State<MovieProfile> {
                       TextSpan(
                           text: "Producer: ",
                           style:
-                          TextStyle(color: MyColors().cyan, fontSize: 18)),
+                              TextStyle(color: MyColors().cyan, fontSize: 18)),
                       TextSpan(
                           text: movie.producer.trim(),
                           style: TextStyle(color: Colors.white, fontSize: 18)),
@@ -197,12 +197,13 @@ class _MovieProfile extends State<MovieProfile> {
 
   Widget buildImage() {
     final image =
-    NetworkImage("https://thumbs.dreamstime.com/z/print-178440812.jpg");
+        NetworkImage("https://thumbs.dreamstime.com/z/print-178440812.jpg");
 
     return FadeInImage(
       placeholder: NetworkImage(
           'https://www.creativefabrica.com/wp-content/uploads/2021/01/14/theater-mask-actor-logo-vector-Graphics-7777527-1-1-580x387.jpg'),
-      image: NetworkImage(movie.mediaUrl ?? image.url), // Handle nullable mediaUrl
+      image:
+          NetworkImage(movie.mediaUrl ?? image.url), // Handle nullable mediaUrl
       width: 200, // set the desired width
       height: 200, // set the desired height
     );
@@ -210,6 +211,7 @@ class _MovieProfile extends State<MovieProfile> {
 
   Future<void> _launchURL(String query) async {
     final url = 'https://www.youtube.com/results?search_query=$query';
+    // ignore: deprecated_member_use
     if (await canLaunch(url)) {
       await launchUrl(Uri.parse(url));
     } else {
@@ -217,4 +219,3 @@ class _MovieProfile extends State<MovieProfile> {
     }
   }
 }
-

@@ -4,6 +4,9 @@ PODS:
     - Flutter
   - maps_launcher (0.0.1):
     - Flutter
+  - path_provider_foundation (0.0.1):
+    - Flutter
+    - FlutterMacOS
   - url_launcher_ios (0.0.1):
     - Flutter
 
@@ -11,6 +14,7 @@ DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_secure_storage (from `.symlinks/plugins/flutter_secure_storage/ios`)
   - maps_launcher (from `.symlinks/plugins/maps_launcher/ios`)
+  - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
 
 EXTERNAL SOURCES:
@@ -20,15 +24,18 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_secure_storage/ios"
   maps_launcher:
     :path: ".symlinks/plugins/maps_launcher/ios"
+  path_provider_foundation:
+    :path: ".symlinks/plugins/path_provider_foundation/darwin"
   url_launcher_ios:
     :path: ".symlinks/plugins/url_launcher_ios/ios"
 
 SPEC CHECKSUMS:
-  Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
-  flutter_secure_storage: 23fc622d89d073675f2eaa109381aefbcf5a49be
+  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  flutter_secure_storage: d33dac7ae2ea08509be337e775f6b59f1ff45f12
   maps_launcher: 2e5b6a2d664ec6c27f82ffa81b74228d770ab203
-  url_launcher_ios: ae1517e5e344f5544fb090b079e11f399dfbe4d2
+  path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
+  url_launcher_ios: 5334b05cef931de560670eeae103fd3e431ac3fe
 
-PODFILE CHECKSUM: 0e8f5c5e2037fcf43cc418840c78e71bdf631bda
+PODFILE CHECKSUM: 37b775cb11c8a5d3e14da95084fee1bd7848c874
 
 COCOAPODS: 1.15.2
