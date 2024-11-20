@@ -5,7 +5,8 @@ import 'package:theatrical_plays/pages/Home.dart';
 import 'package:theatrical_plays/using/AuthorizationStore.dart';
 import 'package:theatrical_plays/using/Constants.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
-
+import 'package:http/http.dart' as http; // Προσθήκη του http package
+import 'dart:convert'; // Προσθήκη του json package για την κωδικοποίηση JSON
 import 'SignInScreen.dart';
 
 // class LoginScreen extends StatefulWidget {
@@ -287,10 +288,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> doLogin(String email, String password) async {
     try {
-      Uri uri = Uri.parse(
-          "http://${Constants().hostName}:8080/api/users/login?email=$email&password=$password");
-      Response response =
-          await get(uri, headers: {"Accept": "application/json"});
+      Uri uri =
+          Uri.parse("http://${Constants().hostName}:8080/api/users/login");
+
+      //Δημιουργό το body request
+      Map<String, String> loginData = {
+        "email": email,
+        "password": password,
+      };
+
+      // Στέλνουμε το αίτημα με POST μέθοδο
+      http.Response response = await http.post(
+        uri,
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        },
+        body: json.encode(loginData), // Στέλνουμε τα δεδομένα σε JSON μορφή
+      );
 
       if (response.statusCode == 200) {
         await AuthorizationStore.writeToStore(
