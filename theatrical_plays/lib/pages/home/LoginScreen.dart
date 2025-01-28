@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart';
 import 'package:theatrical_plays/pages/Home.dart';
 import 'package:theatrical_plays/using/AuthorizationStore.dart';
 import 'package:theatrical_plays/using/Constants.dart';
@@ -262,12 +261,12 @@ class _LoginScreenState extends State<LoginScreen> {
             Row(
               children: <Widget>[
                 Text(
-                  'Does not have account?',
+                  'Don\'t have account?',
                   style: TextStyle(color: MyColors().white),
                 ),
                 TextButton(
                   child: Text(
-                    'Sign in',
+                    'Sign up',
                     style: TextStyle(fontSize: 20, color: MyColors().cyan),
                   ),
                   onPressed: () {

@@ -1,4 +1,4 @@
 class Constants {
   // String hostName = 'localhost';
-  String hostName = '195.251.123.174';
+  String hostName = 'cs1msa.iee.ihu.gr';
 }
