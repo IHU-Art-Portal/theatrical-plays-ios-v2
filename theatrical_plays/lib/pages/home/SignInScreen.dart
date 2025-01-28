@@ -127,7 +127,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         shape: new RoundedRectangleBorder(
                             borderRadius: new BorderRadius.circular(30.0),
                             side: BorderSide(color: MyColors().cyan)),
-                        backgroundColor: Colors.black,
+                        backgroundColor: MyColors().gray,
                         textStyle: TextStyle(color: MyColors().cyan)),
                     child: Text(
                       'Sign up',
@@ -191,9 +191,10 @@ class _SignInScreenState extends State<SignInScreen> {
               context, MaterialPageRoute(builder: (context) => LoginScreen()));
         } else {
           print(response.statusCode);
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text("Not valid credentials"),
-              duration: Duration(seconds: 5); // Διάρκεια 5 δευτερόλεπτα));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text("Not valid credentials"),
+            duration: Duration(seconds: 5),
+          )); // Διάρκεια 5 δευτερόλεπτα));
         }
         print("Response body: ${response.body}");
       } else {
