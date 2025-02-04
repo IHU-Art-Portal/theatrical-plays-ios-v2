@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
 import 'package:theatrical_plays/pages/home/LoadingHomeScreen.dart';
 import 'package:theatrical_plays/pages/home/LoginScreen.dart';
+import 'package:theatrical_plays/pages/home/login_signup.dart';
+
 import 'package:theatrical_plays/pages/theaters/LoadingTheaters.dart';
 import 'package:theatrical_plays/using/AuthorizationStore.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
@@ -159,7 +161,8 @@ class _HomeState extends State<Home> {
                 logout();
               })
         ],
-        backgroundColor: MyColors().black, systemOverlayStyle: SystemUiOverlayStyle.light,
+        backgroundColor: MyColors().black,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
       ),
       // Bottom navigation bar size, colors, and snake shape
       bottomNavigationBar: SnakeNavigationBar.color(
@@ -167,9 +170,8 @@ class _HomeState extends State<Home> {
         backgroundColor: MyColors().black,
         snakeShape: snakeShape,
         snakeViewColor: MyColors().cyan,
-        selectedItemColor: snakeShape == SnakeShape.indicator
-            ? MyColors().cyan
-            : null,
+        selectedItemColor:
+            snakeShape == SnakeShape.indicator ? MyColors().cyan : null,
         unselectedItemColor: Colors.white,
         showUnselectedLabels: true,
         showSelectedLabels: true,
@@ -181,10 +183,14 @@ class _HomeState extends State<Home> {
           });
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Actors'),
-          BottomNavigationBarItem(icon: Icon(Icons.movie_outlined), label: 'Movies'),
-          BottomNavigationBarItem(icon: Icon(Icons.theaters_outlined), label: 'Theaters')
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined), label: 'Home'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline), label: 'Actors'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.movie_outlined), label: 'Movies'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.theaters_outlined), label: 'Theaters')
         ],
         selectedLabelStyle: const TextStyle(fontSize: 14),
         unselectedLabelStyle: const TextStyle(fontSize: 10),
@@ -222,7 +228,10 @@ class _HomeState extends State<Home> {
 
   void logout() {
     AuthorizationStore.deleteAllValuesFromStore();
-    Navigator.pushReplacement(
-        context, MaterialPageRoute(builder: (context) => LoginScreen()));
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => LoginSignupScreen()),
+      (Route<dynamic> route) => false, // Αφαιρεί όλα τα προηγούμενα routes
+    );
   }
 }

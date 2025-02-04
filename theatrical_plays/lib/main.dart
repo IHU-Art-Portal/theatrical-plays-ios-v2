@@ -1,6 +1,7 @@
 import 'package:animated_splash_screen/animated_splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:theatrical_plays/pages/home/LoginScreen.dart';
+import 'package:theatrical_plays/pages/home/login_signup.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 
 void main() {
@@ -31,6 +32,6 @@ void main() {
         duration: 3000,
         backgroundColor: MyColors().black,
         splashTransition: SplashTransition.fadeTransition,
-        nextScreen: LoginScreen()),
+        nextScreen: LoginSignupScreen()),
   ));
 }
