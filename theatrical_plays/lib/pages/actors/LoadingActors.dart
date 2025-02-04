@@ -7,6 +7,7 @@ import 'package:theatrical_plays/pages/actors/Actors.dart';
 import 'package:theatrical_plays/using/AuthorizationStore.dart';
 import 'package:theatrical_plays/using/Constants.dart';
 import 'package:theatrical_plays/using/Loading.dart';
+
 //
 // class LoadingActors extends StatefulWidget {
 //   @override
@@ -80,41 +81,39 @@ class _LoadingActorsState extends State<LoadingActors> {
   // Load actors data from API
   Future<List<Actor>> loadActors() async {
     try {
-      Uri uri = Uri.parse("http://${Constants().hostName}:8080/api/people");
+      Uri uri = Uri.parse("http://${Constants().hostName}/api/people");
       Response data = await get(uri, headers: {
         "Accept": "application/json",
         "authorization":
-        "${await AuthorizationStore.getStoreValue("authorization")}"
+            "${await AuthorizationStore.getStoreValue("authorization")}"
       });
 
       if (data.statusCode == 200) {
         var jsonData = jsonDecode(data.body);
 
-        for (var oldActor in jsonData['data']['content']) {
-          // Fallback to default image if the image is null or empty
-          if (oldActor['image'] == null || oldActor['image'] == '') {
-            oldActor['image'] =
-            'http://www.macunepimedium.com/wp-content/uploads/2019/04/male-icon.jpg';
-          }
+        // ✅ Διαβάζουμε τους ηθοποιούς από "data" -> "results"
+        List<dynamic> results = jsonData['data']['results'];
 
-          Actor actor = Actor(
-              oldActor['image'], oldActor['id'], oldActor['fullName']);
+        actors.clear(); // Καθαρίζουμε τη λίστα πριν προσθέσουμε νέους ηθοποιούς
 
-          // Add actors that match the name pattern
-          if (RegExp(
-              r"^\s*([A-Za-zα-ωΑ-Ω]{1,}([\.,] |[-']| ))+[A-Za-zΑ-Ωα-ω]+\.?\s*$")
-              .hasMatch(actor.fullName)) {
-            actors.add(actor);
-          }
+        for (var oldActor in results) {
+          // ✅ Επιλογή πρώτης εικόνας από τη λίστα "images"
+          String imageUrl = oldActor['images'].isNotEmpty
+              ? oldActor['images'][0]['imageUrl']
+              : 'https://via.placeholder.com/150'; // Default εικόνα αν δεν υπάρχει
+
+          Actor actor = Actor(imageUrl, oldActor['id'], oldActor['fullname']);
+
+          actors.add(actor);
         }
         return actors;
       } else {
-        print("API status code error");
-        return []; // Return an empty list on error
+        print("API status code error: ${data.statusCode}");
+        return [];
       }
     } on Exception catch (e) {
       print('Error fetching data: $e');
-      return []; // Return an empty list on exception
+      return [];
     }
   }
 
@@ -139,4 +138,3 @@ class _LoadingActorsState extends State<LoadingActors> {
     );
   }
 }
-

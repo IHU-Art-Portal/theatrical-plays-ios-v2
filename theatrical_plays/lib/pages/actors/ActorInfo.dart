@@ -123,22 +123,23 @@ class _ActorInfoState extends State<ActorInfo> {
   // method for loading the actor with the id
   Future<Actor?> loadActor() async {
     try {
-      Uri uri =
-      Uri.parse("http://${Constants().hostName}:8080/api/people/$actorId");
+      Uri uri = Uri.parse("http://${Constants().hostName}/api/people/$actorId");
       Response data = await get(uri, headers: {
         "Accept": "application/json",
         "authorization":
-        "${await AuthorizationStore.getStoreValue("authorization")}"
+            "${await AuthorizationStore.getStoreValue("authorization")}"
       });
       var jsonData = jsonDecode(data.body);
 
       // Assign default image if null or empty
-      if (jsonData['data']['image'] == null || jsonData['data']['image'] == '') {
+      if (jsonData['data']['image'] == null ||
+          jsonData['data']['image'] == '') {
         jsonData['data']['image'] =
-        'http://www.macunepimedium.com/wp-content/uploads/2019/04/male-icon.jpg';
+            'http://www.macunepimedium.com/wp-content/uploads/2019/04/male-icon.jpg';
       }
 
-      actor = Actor(jsonData['data']['image'], jsonData['data']['id'], jsonData['data']['fullName']);
+      actor = Actor(jsonData['data']['image'], jsonData['data']['id'],
+          jsonData['data']['fullName']);
       return actor;
     } on Exception {
       print('Error fetching actor data');
@@ -173,13 +174,15 @@ class _ActorInfoState extends State<ActorInfo> {
                   physics: BouncingScrollPhysics(),
                   children: [
                     ProfileWidget(
-                        imagePath: actorData.image, actorName: actorData.fullName),
+                        imagePath: actorData.image,
+                        actorName: actorData.fullName),
                     Center(
                         child: Padding(
-                          padding: EdgeInsets.fromLTRB(0, 5, 0, 15),
-                          child: Text('Biography',
-                              style: TextStyle(color: MyColors().cyan, fontSize: 18)),
-                        )),
+                      padding: EdgeInsets.fromLTRB(0, 5, 0, 15),
+                      child: Text('Biography',
+                          style:
+                              TextStyle(color: MyColors().cyan, fontSize: 18)),
+                    )),
                     Container(
                       child: Padding(
                         padding: EdgeInsets.fromLTRB(10, 5, 10, 15),
@@ -193,10 +196,11 @@ class _ActorInfoState extends State<ActorInfo> {
                     Divider(color: MyColors().gray),
                     Center(
                         child: Padding(
-                          padding: EdgeInsets.fromLTRB(0, 5, 0, 15),
-                          child: Text('Related Productions',
-                              style: TextStyle(color: MyColors().cyan, fontSize: 18)),
-                        )),
+                      padding: EdgeInsets.fromLTRB(0, 5, 0, 15),
+                      child: Text('Related Productions',
+                          style:
+                              TextStyle(color: MyColors().cyan, fontSize: 18)),
+                    )),
                     BodyProfileWidget(actorData.id)
                   ],
                 );
