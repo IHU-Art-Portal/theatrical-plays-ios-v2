@@ -151,6 +151,13 @@ class _ActorInfoState extends State<ActorInfo> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back,
+                color: MyColors().cyan), // Εικονίδιο "πίσω"
+            onPressed: () {
+              Navigator.pop(context); // Πηγαίνει πίσω στην προηγούμενη σελίδα
+            },
+          ),
           // brightness: Brightness.dark,
           title: Text(
             'Actor Info',
