@@ -86,11 +86,25 @@ class _LoadingHomeScreenState extends State<LoadingHomeScreen> {
               //   fullName: oldActor['fullName'] ?? 'Unknown Name',
               // );
               Actor actor = Actor(
-                oldActor['image'] ??
-                    'https://example.com/default-image.jpg', // Fallback for image
-                oldActor['id'] ?? 0, // Fallback for id
-                oldActor['fullName'] ??
-                    'Unknown Name', // Fallback for full name
+                id: oldActor['id'] ?? 0, // Αν δεν υπάρχει, δίνουμε 0
+                fullName: oldActor['fullname'] ??
+                    'Unknown Name', // Διορθώθηκε σε `fullname`
+                image: (oldActor['images'] != null &&
+                        oldActor['images'].isNotEmpty)
+                    ? oldActor['images'][0]
+                        ['imageUrl'] // Παίρνουμε την πρώτη εικόνα αν υπάρχει
+                    : 'https://example.com/default-image.jpg', // Default εικόνα αν δεν υπάρχει
+                birthdate:
+                    oldActor['birthdate'], // Προσθήκη ημερομηνίας γέννησης
+                height: oldActor['height'], // Προσθήκη ύψους
+                weight: oldActor['weight'], // Προσθήκη βάρους
+                eyeColor: oldActor['eyeColor'], // Προσθήκη χρώματος ματιών
+                hairColor: oldActor['hairColor'], // Προσθήκη χρώματος μαλλιών
+                bio: oldActor['bio'], // Προσθήκη βιογραφίας
+                images: oldActor['images'] != null
+                    ? List<String>.from(oldActor['images'].map(
+                        (img) => img['imageUrl'])) // Μετατροπή εικόνων σε λίστα
+                    : [], // Αν δεν υπάρχουν εικόνες, δίνουμε κενή λίστα
               );
 
               if (RegExp(

@@ -38,12 +38,42 @@ class _HomeScreenState extends State<HomeScreen> {
   });
 
   List<Actor> homescreenActors = [
-    Actor('https://image.tmdb.org/t/p/w300/nv5TR9NiELEGPJUQqVLEqZzcGZb.jpg',
-        6911, 'Γιώργος Καραμίχος'),
-    Actor('https://image.tmdb.org/t/p/w300/mR3QlGx3y68uVZriNzoOLOnwPy.jpg',
-        5044, 'Γιώργος Νινιός'),
-    Actor('https://image.tmdb.org/t/p/w300/oiectxNJB7ctBwRKY45ChonEbjw.jpg',
-        7544, 'Γιώργος Παπαγεωργίου'),
+    Actor(
+      id: 6911,
+      fullName: 'Γιώργος Καραμίχος',
+      image: 'https://image.tmdb.org/t/p/w300/nv5TR9NiELEGPJUQqVLEqZzcGZb.jpg',
+      birthdate: null,
+      height: null,
+      weight: null,
+      eyeColor: null,
+      hairColor: null,
+      bio: null,
+      images: [],
+    ),
+    Actor(
+      id: 5044,
+      fullName: 'Γιώργος Νινιός',
+      image: 'https://image.tmdb.org/t/p/w300/mR3QlGx3y68uVZriNzoOLOnwPy.jpg',
+      birthdate: null,
+      height: null,
+      weight: null,
+      eyeColor: null,
+      hairColor: null,
+      bio: null,
+      images: [],
+    ),
+    Actor(
+      id: 7544,
+      fullName: 'Γιώργος Παπαγεωργίου',
+      image: 'https://image.tmdb.org/t/p/w300/oiectxNJB7ctBwRKY45ChonEbjw.jpg',
+      birthdate: null,
+      height: null,
+      weight: null,
+      eyeColor: null,
+      hairColor: null,
+      bio: null,
+      images: [],
+    ),
   ];
 
   // List<Movie> homescreenMovies = [

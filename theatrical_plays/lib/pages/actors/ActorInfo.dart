@@ -33,21 +33,39 @@ class _ActorInfoState extends State<ActorInfo> {
         "authorization":
             "${await AuthorizationStore.getStoreValue("authorization")}"
       });
+
       var jsonData = jsonDecode(data.body);
 
-      // Assign default image if null or empty
-      if (jsonData['data']['image'] == null ||
-          jsonData['data']['image'] == '') {
-        jsonData['data']['image'] =
-            'http://www.macunepimedium.com/wp-content/uploads/2019/04/male-icon.jpg';
+      if (jsonData['data'] == null) {
+        print("No data found for actor ID: $actorId");
+        return null;
       }
 
-      actor = Actor(jsonData['data']['image'], jsonData['data']['id'],
-          jsonData['data']['fullName']);
+      // Ελέγχουμε αν υπάρχει λίστα εικόνων
+      List<dynamic>? imagesList = jsonData['data']['images'];
+      String imageUrl = (imagesList != null && imagesList.isNotEmpty)
+          ? imagesList[0]['imageUrl']
+          : 'https://www.macunepimedium.com/wp-content/uploads/2019/04/male-icon.jpg';
+
+      actor = Actor(
+        id: jsonData['data']['id'] ?? 0,
+        fullName: jsonData['data']['fullname'] ?? 'Unknown Name',
+        image: imageUrl,
+        birthdate: jsonData['data']['birthdate'],
+        height: jsonData['data']['height'],
+        weight: jsonData['data']['weight'],
+        eyeColor: jsonData['data']['eyeColor'],
+        hairColor: jsonData['data']['hairColor'],
+        bio: jsonData['data']['bio'],
+        images: (imagesList != null)
+            ? List<String>.from(imagesList.map((img) => img['imageUrl']))
+            : [],
+      );
+
       return actor;
-    } on Exception {
-      print('Error fetching actor data');
-      return null; // Return null in case of an error
+    } catch (e) {
+      print('Error fetching actor data: $e');
+      return null; // Αν υπάρξει σφάλμα, επιστρέφουμε null
     }
   }
 
@@ -81,37 +99,76 @@ class _ActorInfoState extends State<ActorInfo> {
                 return Center(child: Text("No actor data found"));
               } else {
                 Actor actorData = snapshot.data!;
+
                 return ListView(
                   physics: BouncingScrollPhysics(),
                   children: [
                     ProfileWidget(
-                        imagePath: actorData.image,
-                        actorName: actorData.fullName),
-                    Center(
-                        child: Padding(
-                      padding: EdgeInsets.fromLTRB(0, 5, 0, 15),
-                      child: Text('Biography',
-                          style:
-                              TextStyle(color: MyColors().cyan, fontSize: 18)),
-                    )),
+                      imagePath: actorData.image,
+                      actorName: actorData.fullName,
+                    ),
+                    SizedBox(height: 15),
                     Container(
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(10, 5, 10, 15),
-                        child: Text(
-                          "${actorData.fullName} γεννήθηκε το 1959 στην Ορεστιάδα. " +
-                              "Σπούδασε Πολιτικές Επιστήμες στο Πάντειο Πανεπιστήμιο (χωρίς όμως να αποφοιτήσει) και στη Σχολή Κινηματογράφου και Τηλεόρασης του Λυκούργου Σταυράκου. Πριν ασχοληθεί με τη συγγραφή ήθελε να γίνει αθλητικογράφος.",
-                          style: TextStyle(color: Colors.white, fontSize: 18),
-                        ),
+                      padding: EdgeInsets.fromLTRB(10, 5, 10, 15),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "${actorData.fullName}",
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            "Ημερομηνία Γέννησης: ${actorData.birthdate ?? 'Άγνωστη'}",
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 16),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            "Ύψος: ${actorData.height ?? 'Άγνωστο'}",
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 16),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            "Βάρος: ${actorData.weight ?? 'Άγνωστο'}",
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 16),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            "Χρώμα Ματιών: ${actorData.eyeColor ?? 'Άγνωστο'}",
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 16),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            "Χρώμα Μαλλιών: ${actorData.hairColor ?? 'Άγνωστο'}",
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 16),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            "Βιογραφία: ${actorData.bio ?? 'Δεν υπάρχει διαθέσιμη βιογραφία.'}",
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        ],
                       ),
                     ),
                     Divider(color: MyColors().gray),
                     Center(
-                        child: Padding(
-                      padding: EdgeInsets.fromLTRB(0, 5, 0, 15),
-                      child: Text('Related Productions',
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(0, 5, 0, 15),
+                        child: Text(
+                          'Related Productions',
                           style:
-                              TextStyle(color: MyColors().cyan, fontSize: 18)),
-                    )),
+                              TextStyle(color: MyColors().cyan, fontSize: 18),
+                        ),
+                      ),
+                    ),
                     BodyProfileWidget(actorData.id)
                   ],
                 );
