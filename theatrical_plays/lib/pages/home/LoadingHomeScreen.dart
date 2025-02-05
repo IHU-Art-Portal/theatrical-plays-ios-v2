@@ -34,15 +34,15 @@ class _LoadingHomeScreenState extends State<LoadingHomeScreen> {
       var jsonData = jsonDecode(data.body);
 
       int counter = 0;
-      for (var oldMovie in jsonData['data']['content']) {
-        if (oldMovie['mediaURL'] != null && oldMovie['mediaURL'] != "") {
+      for (var oldMovie in jsonData['data']['results']) {
+        if (oldMovie['mediaUrl'] != null && oldMovie['mediaUrl'] != "") {
           Movie movie = Movie(
             id: oldMovie['id'] ?? 0,
             title: oldMovie['title'] ?? 'Unknown Title',
-            ticketUrl: oldMovie['ticketUrl'],
+            ticketUrl: oldMovie['url'], // Ενημερωμένο από `url`
             producer: oldMovie['producer'] ?? 'Unknown Producer',
-            mediaUrl: oldMovie['mediaURL'],
-            duration: oldMovie['duration'],
+            mediaUrl: oldMovie['mediaUrl'], // Ενημερωμένο από `mediaUrl`
+            duration: oldMovie['duration'] ?? 'Unknown Duration',
             description: oldMovie['description'] ?? 'No description available',
             isSelected: false,
           );
