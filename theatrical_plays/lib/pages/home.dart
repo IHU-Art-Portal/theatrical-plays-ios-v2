@@ -10,6 +10,7 @@ import 'package:theatrical_plays/using/MyColors.dart';
 
 import 'actors/LoadingActors.dart';
 import 'movies/LoadingMovies.dart';
+import 'user/UserProfileScreen.dart';
 
 class Home extends StatefulWidget {
   static _HomeState? of(BuildContext context) =>
@@ -44,15 +45,49 @@ class _HomeState extends State<Home> {
           'Theatrical analytics',
           style: TextStyle(color: MyColors().cyan),
         ),
-        actions: <Widget>[
-          IconButton(
-              icon: Icon(Icons.exit_to_app, color: MyColors().white),
-              onPressed: () {
-                logout();
-              })
-        ],
         backgroundColor: MyColors().black,
         systemOverlayStyle: SystemUiOverlayStyle.light,
+        actions: <Widget>[
+          Padding(
+            padding: const EdgeInsets.only(right: 15.0),
+            child: PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == "profile") {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => UserProfileScreen()),
+                  );
+                } else if (value == "logout") {
+                  confirmLogout();
+                }
+              },
+              itemBuilder: (BuildContext context) => [
+                PopupMenuItem(
+                  value: "profile",
+                  child: ListTile(
+                    leading: Icon(Icons.person, color: Colors.blue),
+                    title: Text("Προφίλ"),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: "logout",
+                  child: ListTile(
+                    leading: Icon(Icons.exit_to_app, color: Colors.red),
+                    title: Text("Αποσύνδεση"),
+                  ),
+                ),
+              ],
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.grey[800], // Placeholder background
+                backgroundImage: NetworkImage(
+                  "https://www.gravatar.com/avatar/placeholder?d=mp", // Φόρτωσε εικόνα χρήστη (προσωρινή)
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       // Bottom navigation bar size, colors, and snake shape
       bottomNavigationBar: SnakeNavigationBar.color(
@@ -114,6 +149,32 @@ class _HomeState extends State<Home> {
         controller.jumpToPage(index);
       });
     }
+  }
+
+  void confirmLogout() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Αποσύνδεση"),
+          content: Text("Είστε σίγουρος ότι θέλετε να αποσυνδεθείτε;"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Ακύρωση και κλείσιμο διαλόγου
+              },
+              child: Text("Ακύρωση"),
+            ),
+            TextButton(
+              onPressed: () {
+                logout(); // Κλήση της πραγματικής μεθόδου logout
+              },
+              child: Text("Αποσύνδεση", style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void logout() {

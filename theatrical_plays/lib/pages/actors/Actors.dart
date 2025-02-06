@@ -51,7 +51,18 @@ class _ActorsState extends State<Actors> {
                       padding: const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
                       child: CircleAvatar(
                         radius: 30.0,
-                        backgroundImage: NetworkImage(actors[index].image),
+                        backgroundColor: Colors
+                            .grey[800], // Background αν δεν φορτώσει εικόνα
+                        child: ClipOval(
+                          child: Image.network(
+                            actors[index].image,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Image.asset("images/avatar.jpg",
+                                  fit: BoxFit.cover);
+                            },
+                          ),
+                        ),
                       ),
                     ),
                     title: Text(
