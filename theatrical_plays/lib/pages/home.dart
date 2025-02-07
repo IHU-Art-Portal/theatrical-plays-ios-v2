@@ -11,6 +11,7 @@ import 'package:theatrical_plays/using/MyColors.dart';
 import 'actors/LoadingActors.dart';
 import 'movies/LoadingMovies.dart';
 import 'user/UserProfileScreen.dart';
+import 'package:theatrical_plays/using/globals.dart';
 
 class Home extends StatefulWidget {
   static _HomeState? of(BuildContext context) =>
@@ -178,6 +179,7 @@ class _HomeState extends State<Home> {
   }
 
   void logout() {
+    globalAccessToken = null; // Διαγραφή του token
     AuthorizationStore.deleteAllValuesFromStore();
     Navigator.pushAndRemoveUntil(
       context,

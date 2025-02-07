@@ -6,8 +6,7 @@ import 'package:flutter_vector_icons/flutter_vector_icons.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/Constants.dart';
 import 'package:theatrical_plays/pages/Home.dart';
-
-String? globalAccessToken;
+import 'package:theatrical_plays/using/globals.dart';
 
 class LoginSignupScreen extends StatefulWidget {
   @override
@@ -519,14 +518,11 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
   }
 
   Future<void> doLogin(String email, String password) async {
-    print(
-        "DEBUG - Email: '${emailController.text}', Password: '${passwordController.text}'"); // ✅ Προσθήκη για debug
     try {
       if (email.trim().isEmpty || password.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("All fields are required")),
         );
-        print("what?");
         return;
       }
 
@@ -551,16 +547,17 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
         String? accessToken = responseData['data']?['access_token'];
 
         if (accessToken != null && accessToken.isNotEmpty) {
-          print("Login successful. Access Token: $accessToken");
+          print("✅ Login successful. Access Token: $accessToken");
 
-          // ✅ Αποθήκευση του access_token
-          globalAccessToken = accessToken; // ✅ Αποθήκευση σε global μεταβλητή
+          // Αποθήκευση του Token στη RAM
+          globalAccessToken = accessToken;
+          print("🔐 Token αποθηκεύτηκε: $globalAccessToken");
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Login Successful! Redirecting...")),
           );
 
-          // ✅ Αναμονή 2 δευτερολέπτων για το μήνυμα επιτυχίας
+          // Μετάβαση στην κεντρική οθόνη
           Future.delayed(Duration(seconds: 2), () {
             Navigator.pushReplacement(
               context,
