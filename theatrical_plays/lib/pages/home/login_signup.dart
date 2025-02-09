@@ -22,6 +22,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
 
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
+  TextEditingController phoneController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +84,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
 
             // Κεντρικό Box για Login/Signup
             Positioned(
-              top: isSignupScreen ? 200 : 230,
+              top: isSignupScreen ? 200 : 200,
               left: 20,
               right: 20,
               child: AnimatedContainer(
@@ -386,7 +387,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     return AnimatedPositioned(
       duration: Duration(milliseconds: 700),
       curve: Curves.bounceInOut,
-      top: isSignupScreen ? 435 : 430,
+      top: isSignupScreen ? 435 : 405,
       right: 0,
       left: 0,
       child: Center(
@@ -583,5 +584,42 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
         SnackBar(content: Text("Error logging in. Check internet connection.")),
       );
     }
+  }
+
+  void showOtpDialog(String phoneNumber) {
+    String otpCode = "";
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Enter OTP"),
+          content: TextField(
+            onChanged: (value) {
+              otpCode = value;
+            },
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(hintText: "Enter OTP Code"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                if (otpCode.length == 6) {
+                  // Προσωρινή επιβεβαίωση OTP (θα πρέπει να γίνει μέσω Twilio)
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Phone Verified Successfully!")),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Invalid OTP, try again!")),
+                  );
+                }
+              },
+              child: Text("Verify"),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
