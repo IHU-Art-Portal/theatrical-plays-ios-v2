@@ -6,10 +6,8 @@ import 'package:theatrical_plays/using/globals.dart';
 class UserService {
   static Future<Map<String, dynamic>?> fetchUserProfile() async {
     try {
-      // 🔹 Έλεγχος αν υπάρχει token στη global μεταβλητή
       if (globalAccessToken == null) {
-        print(
-            "❌ Δεν υπάρχει αποθηκευμένο token. Ο χρήστης μπορεί να είναι αποσυνδεδεμένος.");
+        print("❌ Δεν υπάρχει αποθηκευμένο token.");
         return null;
       }
 
@@ -19,8 +17,7 @@ class UserService {
         uri,
         headers: {
           "Accept": "application/json",
-          "Authorization":
-              "Bearer $globalAccessToken" // ✅ Χρήση του global token
+          "Authorization": "Bearer $globalAccessToken"
         },
       );
 
@@ -35,6 +32,105 @@ class UserService {
     } catch (e) {
       print("❌ Σφάλμα κατά την ανάκτηση του προφίλ: $e");
       return null;
+    }
+  }
+
+  static Future<bool> verifyPhoneNumber() async {
+    try {
+      if (globalAccessToken == null) {
+        print("❌ Δεν υπάρχει αποθηκευμένο token.");
+        return false;
+      }
+
+      Uri uri =
+          Uri.parse("http://${Constants().hostName}/api/user/verify-phone");
+
+      http.Response response = await http.post(
+        uri,
+        headers: {
+          "Authorization": "Bearer $globalAccessToken",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Ο αριθμός τηλεφώνου επιβεβαιώθηκε επιτυχώς!");
+        return true;
+      } else {
+        print("❌ Σφάλμα επιβεβαίωσης τηλεφώνου: ${response.statusCode}");
+        print("📩 API Response: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("❌ Σφάλμα επιβεβαίωσης τηλεφώνου: $e");
+      return false;
+    }
+  }
+
+  static Future<bool> registerPhoneNumber(String phoneNumber) async {
+    try {
+      if (globalAccessToken == null) {
+        print("❌ Δεν υπάρχει αποθηκευμένο token.");
+        return false;
+      }
+
+      Uri uri = Uri.parse(
+          "http://${Constants().hostName}/api/User/register/phoneNumber?phoneNumber=$phoneNumber");
+
+      http.Response response = await http.post(
+        uri,
+        headers: {
+          "Authorization": "Bearer $globalAccessToken",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Ο αριθμός τηλεφώνου καταχωρήθηκε επιτυχώς!");
+        return true;
+      } else {
+        print("❌ Σφάλμα καταχώρησης αριθμού τηλεφώνου: ${response.statusCode}");
+        print("📩 API Response: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("❌ Σφάλμα κατά την καταχώρηση τηλεφώνου: $e");
+      return false;
+    }
+  }
+
+  static Future<bool> confirmPhoneVerification(String verificationCode) async {
+    try {
+      if (globalAccessToken == null) {
+        print("❌ Δεν υπάρχει αποθηκευμένο token.");
+        return false;
+      }
+
+      Uri uri = Uri.parse(
+          "http://${Constants().hostName}/api/user/confirm-verification-phone-number");
+
+      http.Response response = await http.post(
+        uri,
+        headers: {
+          "Authorization": "Bearer $globalAccessToken",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({
+          "verificationCode": verificationCode, // ✅ Στέλνουμε τον κωδικό OTP
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Το τηλέφωνο επιβεβαιώθηκε επιτυχώς!");
+        return true;
+      } else {
+        print("❌ Σφάλμα επιβεβαίωσης τηλεφώνου: ${response.statusCode}");
+        print("📩 API Response: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("❌ Σφάλμα επιβεβαίωσης τηλεφώνου: $e");
+      return false;
     }
   }
 }

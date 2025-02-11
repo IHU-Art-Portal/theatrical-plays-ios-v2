@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/UserService.dart';
-import 'package:theatrical_plays/services/twilio_service.dart';
-import 'dart:math';
 
 class UserProfileScreen extends StatefulWidget {
   @override
@@ -12,9 +10,9 @@ class UserProfileScreen extends StatefulWidget {
 class _UserProfileScreenState extends State<UserProfileScreen> {
   Map<String, dynamic>? userData;
   bool isLoading = true;
-  bool isPhoneVerified = true; // ✅ Έλεγχος αν το τηλέφωνο είναι επιβεβαιωμένο
-  String phoneNumber = ""; // ✅ Τηλέφωνο χρήστη για επιβεβαίωση
-  String otpSent = ""; // ✅ Αποθηκεύουμε το OTP για έλεγχο
+  bool isPhoneVerified = false;
+  String userRole = "";
+  String phoneNumber = "";
 
   @override
   void initState() {
@@ -24,74 +22,128 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> fetchUserData() async {
     var data = await UserService.fetchUserProfile();
-    print("📢 Απάντηση από API: $data");
-
     if (mounted) {
       setState(() {
         userData = data;
         isLoading = false;
-        isPhoneVerified = data?["phoneVerified"] ??
-            false; // ✅ Έλεγχος αν έχει επιβεβαιώσει το κινητό
-        phoneNumber =
-            data?["phoneNumber"] ?? ""; // ✅ Αποθηκεύουμε το τηλέφωνο του χρήστη
+        isPhoneVerified = data?["phoneVerified"] ?? false;
+        userRole = data?["role"] ?? "Χωρίς ρόλο";
+        phoneNumber = data?["phoneNumber"] ?? "";
       });
     }
   }
 
-  Future<void> sendOtpVerification() async {
-    String otp = (100000 + Random().nextInt(900000))
-        .toString(); // ✅ Δημιουργία 6ψήφιου OTP
-    setState(() {
-      otpSent = otp; // ✅ Αποθηκεύουμε το OTP
-    });
-
-    bool success = await TwilioService.sendOtp(phoneNumber, otp);
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("📲 Ο κωδικός OTP στάλθηκε στο $phoneNumber"),
-        backgroundColor: Colors.green,
-      ));
-      _showOtpDialog();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("❌ Αποτυχία αποστολής OTP."),
-        backgroundColor: Colors.red,
-      ));
-    }
-  }
-
-  void _showOtpDialog() {
+  void showPhoneVerificationDialog() {
     TextEditingController otpController = TextEditingController();
+
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Εισαγωγή OTP"),
-          content: TextField(
-            controller: otpController,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: "Εισαγάγετε το OTP"),
+          backgroundColor: MyColors().black,
+          title: Text("Επιβεβαίωση Τηλεφώνου",
+              style: TextStyle(color: MyColors().cyan)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: otpController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: "Εισαγωγή OTP",
+                  labelStyle: TextStyle(color: Colors.white),
+                  enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: MyColors().cyan)),
+                  focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: MyColors().cyan)),
+                ),
+                style: TextStyle(color: Colors.white),
+              ),
+              SizedBox(height: 10),
+            ],
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                if (otpController.text == otpSent) {
+              onPressed: () => Navigator.pop(context),
+              child: Text("Ακύρωση", style: TextStyle(color: Colors.red)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (otpController.text.isEmpty) {
+                  print("❌ Παρακαλώ εισάγετε τον κωδικό OTP!");
+                  return;
+                }
+
+                bool success = await UserService.confirmPhoneVerification(
+                    otpController.text);
+                if (success) {
+                  print("✅ Ο αριθμός τηλεφώνου επιβεβαιώθηκε!");
                   setState(() {
-                    isPhoneVerified = true; // ✅ Ενημέρωση κατάστασης
+                    isPhoneVerified = true;
                   });
+                  fetchUserData(); // Ανανεώνει τα δεδομένα χρήστη
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text("✅ Το τηλέφωνο επιβεβαιώθηκε επιτυχώς!"),
-                    backgroundColor: Colors.green,
-                  ));
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text("❌ Λάθος OTP, δοκιμάστε ξανά."),
-                    backgroundColor: Colors.red,
-                  ));
+                  print("❌ Αποτυχία επιβεβαίωσης τηλεφώνου!");
                 }
               },
+              style: ElevatedButton.styleFrom(backgroundColor: MyColors().cyan),
               child: Text("Επιβεβαίωση"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// ✅ Μέθοδος για εισαγωγή αριθμού τηλεφώνου
+  void showPhoneRegistrationDialog() {
+    TextEditingController phoneController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: MyColors().black,
+          title: Text("Καταχώρηση Τηλεφώνου",
+              style: TextStyle(color: MyColors().cyan)),
+          content: TextField(
+            controller: phoneController,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              labelText: "Αριθμός τηλεφώνου",
+              labelStyle: TextStyle(color: Colors.white),
+              enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: MyColors().cyan)),
+              focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: MyColors().cyan)),
+            ),
+            style: TextStyle(color: Colors.white),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Ακύρωση", style: TextStyle(color: Colors.red)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (phoneController.text.isEmpty) {
+                  print("❌ Δεν έχετε εισάγει αριθμό τηλεφώνου!");
+                  return;
+                }
+
+                bool success =
+                    await UserService.registerPhoneNumber(phoneController.text);
+                if (success) {
+                  print("✅ Ο αριθμός τηλεφώνου καταχωρήθηκε!");
+                  fetchUserData(); // Ανανεώνει τα δεδομένα του χρήστη
+                  Navigator.pop(context);
+                } else {
+                  print("❌ Αποτυχία καταχώρησης τηλεφώνου!");
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: MyColors().cyan),
+              child: Text("Καταχώρηση"),
             ),
           ],
         );
@@ -103,10 +155,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Προφίλ Χρήστη',
-          style: TextStyle(color: MyColors().cyan),
-        ),
+        title: Text('Προφίλ Χρήστη', style: TextStyle(color: MyColors().cyan)),
         backgroundColor: MyColors().black,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: MyColors().cyan),
@@ -130,32 +179,54 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Center(
-                        child: CircleAvatar(
-                          radius: 50,
-                          backgroundImage: NetworkImage(
-                            userData?["profilePictureUrl"] ??
-                                "https://www.gravatar.com/avatar/placeholder?d=mp",
-                          ),
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundImage: NetworkImage(
+                          userData?["profilePictureUrl"] ??
+                              "https://www.gravatar.com/avatar/placeholder?d=mp",
                         ),
                       ),
                       SizedBox(height: 20),
-                      Text(
-                        userData?["email"] ?? "Δεν υπάρχει email",
-                        style: TextStyle(fontSize: 22, color: Colors.white),
-                      ),
+                      Text(userData?["email"] ?? "Δεν υπάρχει email",
+                          style: TextStyle(fontSize: 22, color: Colors.white)),
+                      SizedBox(height: 5),
+                      Text("Ρόλος: $userRole",
+                          style:
+                              TextStyle(fontSize: 18, color: MyColors().gray)),
                       SizedBox(height: 10),
+
+                      /// ✅ Προσθήκη των Credits του χρήστη
                       Text(
                         "Credits: ${userData?["balance"] != null ? "${userData?["balance"].toStringAsFixed(2)}" : "N/A"}",
                         style: TextStyle(
                             fontSize: 18,
-                            color: MyColors().cyan,
+                            color: Colors.yellow,
                             fontWeight: FontWeight.bold),
                       ),
                       SizedBox(height: 20),
 
-                      // ✅ Αν δεν έχει επιβεβαιώσει το τηλέφωνο, εμφανίζουμε ειδοποίηση
-                      if (!isPhoneVerified)
+                      /// ✅ Αν ΔΕΝ υπάρχει αριθμός τηλεφώνου, δείξε μήνυμα και κουμπί
+                      if (phoneNumber.isEmpty)
+                        Column(
+                          children: [
+                            Text(
+                              "⚠️ Δεν έχετε καταχωρήσει αριθμό τηλεφώνου!",
+                              style:
+                                  TextStyle(color: Colors.orange, fontSize: 16),
+                            ),
+                            SizedBox(height: 10),
+                            ElevatedButton(
+                              onPressed: showPhoneRegistrationDialog,
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: MyColors().cyan),
+                              child: Text("Καταχώρηση Τηλεφώνου"),
+                            ),
+                            SizedBox(height: 20),
+                          ],
+                        ),
+
+                      /// ✅ Αν το τηλέφωνο ΔΕΝ είναι επιβεβαιωμένο, δείξε μήνυμα
+                      if (phoneNumber.isNotEmpty && !isPhoneVerified)
                         Column(
                           children: [
                             Text(
@@ -164,7 +235,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             ),
                             SizedBox(height: 10),
                             ElevatedButton(
-                              onPressed: sendOtpVerification,
+                              onPressed:
+                                  showPhoneVerificationDialog, // ✅ Ανοίγει το popup OTP
                               style: ElevatedButton.styleFrom(
                                   backgroundColor: MyColors().cyan),
                               child: Text("Επιβεβαίωση Τηλεφώνου"),
@@ -175,35 +247,33 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
                       Divider(color: MyColors().gray),
 
-                      // ✅ Αν το τηλέφωνο δεν είναι επιβεβαιωμένο, απενεργοποιούμε τις επιλογές
                       ListTile(
                         leading: Icon(Icons.person, color: MyColors().cyan),
-                        title: Text("Επεξεργασία Προφίλ",
-                            style: TextStyle(
-                                color: isPhoneVerified
-                                    ? Colors.white
-                                    : Colors.grey)),
+                        title: Text(
+                          "Επεξεργασία Προφίλ",
+                          style: TextStyle(
+                              color:
+                                  isPhoneVerified ? Colors.white : Colors.grey),
+                        ),
                         onTap: isPhoneVerified
                             ? () {
-                                // TODO: Προσθήκη λειτουργίας επεξεργασίας προφίλ
+                                print("✏️ Επεξεργασία προφίλ...");
+                                // Άνοιξε την οθόνη επεξεργασίας προφίλ εδώ
                               }
-                            : null,
+                            : null, // ✅ Αν δεν είναι verified, δεν κάνει τίποτα
                       ),
+
                       ListTile(
                         leading: Icon(Icons.lock, color: MyColors().cyan),
                         title: Text("Αλλαγή Κωδικού",
                             style: TextStyle(color: Colors.white)),
-                        onTap: () {
-                          // TODO: Προσθήκη αλλαγής κωδικού
-                        },
+                        onTap: () {},
                       ),
                       ListTile(
                         leading: Icon(Icons.exit_to_app, color: Colors.red),
                         title: Text("Αποσύνδεση",
                             style: TextStyle(color: Colors.white)),
-                        onTap: () {
-                          // TODO: Προσθήκη logout
-                        },
+                        onTap: () {},
                       ),
                     ],
                   ),
