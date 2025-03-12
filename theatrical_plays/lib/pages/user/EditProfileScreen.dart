@@ -3,9 +3,9 @@ import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/UserService.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  final String facebookUrl;
-  final String instagramUrl;
-  final String youtubeUrl;
+  String facebookUrl;
+  String instagramUrl;
+  String youtubeUrl;
 
   EditProfileScreen({
     required this.facebookUrl,
@@ -30,9 +30,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    facebookController.text = widget.facebookUrl;
-    instagramController.text = widget.instagramUrl;
-    youtubeController.text = widget.youtubeUrl;
+    fetchUserProfile(); // 🔹 Φόρτωσε τα social links από το API
+  }
+
+  void fetchUserProfile() async {
+    var profileData = await UserService.fetchUserProfile();
+
+    if (profileData != null) {
+      setState(() {
+        facebookController.text = profileData["facebook"] ?? "";
+        instagramController.text = profileData["instagram"] ?? "";
+        youtubeController.text = profileData["youtube"] ?? "";
+      });
+    }
   }
 
   void saveProfile() async {
@@ -52,6 +62,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     if (success) {
+      fetchUserProfile(); // 🔹 Ξαναφορτώνουμε τα δεδομένα από το API
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("✅ Το προφίλ ενημερώθηκε!"),
@@ -59,7 +71,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           duration: Duration(seconds: 2),
         ),
       );
-      Navigator.pop(context);
+
+      // 🔹 Επιστρέφουμε τα νέα δεδομένα στην `UserProfileScreen`
+      Navigator.pop(context, {
+        "facebookUrl": facebookController.text,
+        "instagramUrl": instagramController.text,
+        "youtubeUrl": youtubeController.text,
+      });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -88,18 +106,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         padding: EdgeInsets.all(16.0),
         child: Column(
           children: [
-            buildSocialField("Facebook", facebookController, widget.facebookUrl,
-                isEditingFacebook, () {
+            buildSocialField("Facebook", facebookController, isEditingFacebook,
+                () {
               setState(() => isEditingFacebook = !isEditingFacebook);
             }),
             SizedBox(height: 10),
-            buildSocialField("Instagram", instagramController,
-                widget.instagramUrl, isEditingInstagram, () {
+            buildSocialField(
+                "Instagram", instagramController, isEditingInstagram, () {
               setState(() => isEditingInstagram = !isEditingInstagram);
             }),
             SizedBox(height: 10),
-            buildSocialField("YouTube", youtubeController, widget.youtubeUrl,
-                isEditingYouTube, () {
+            buildSocialField("YouTube", youtubeController, isEditingYouTube,
+                () {
               setState(() => isEditingYouTube = !isEditingYouTube);
             }),
             SizedBox(height: 20),
@@ -116,7 +134,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   /// ✅ Αν το social δεν έχει URL, δείχνει `"Δεν έχει προστεθεί"`
   Widget buildSocialField(String label, TextEditingController controller,
-      String existingUrl, bool isEditing, VoidCallback onEditToggle) {
+      bool isEditing, VoidCallback onEditToggle) {
+    String existingUrl =
+        controller.text.trim(); // ✅ Διαβάζουμε το URL από το controller
+
     return Row(
       children: [
         Expanded(
@@ -156,10 +177,40 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       icon: Icon(Icons.edit, color: MyColors().cyan),
                       onPressed: onEditToggle,
                     ),
+                    if (existingUrl
+                        .isNotEmpty) // ✅ Δείξε το κουμπί διαγραφής μόνο αν υπάρχει URL
+                      IconButton(
+                        icon: Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => deleteSocialMedia(label.toLowerCase()),
+                      ),
                   ],
                 ),
         ),
       ],
     );
+  }
+
+  void deleteSocialMedia(String platform) async {
+    bool success = await UserService.deleteSocialMedia(platform);
+
+    if (success) {
+      fetchUserProfile(); // 🔹 Ξαναφορτώνουμε τα social links από το API
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("✅ Το $platform διαγράφηκε!"),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("❌ Αποτυχία διαγραφής του $platform!"),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 }

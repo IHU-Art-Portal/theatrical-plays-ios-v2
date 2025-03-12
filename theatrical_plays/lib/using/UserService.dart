@@ -170,4 +170,43 @@ class UserService {
       return false;
     }
   }
+
+  static Future<bool> deleteSocialMedia(String platform) async {
+    try {
+      if (globalAccessToken == null) {
+        print("❌ Δεν υπάρχει αποθηκευμένο token.");
+        return false;
+      }
+
+      Uri uri =
+          Uri.parse("http://${Constants().hostName}/api/User/@/$platform");
+
+      print("📤 Διαγραφή social media:");
+      print("🔹 URL: $uri");
+      print("🔹 Authorization: Bearer $globalAccessToken");
+
+      http.Response response = await http.delete(
+        uri,
+        headers: {
+          "Authorization": "Bearer $globalAccessToken", // ✅ Authentication
+          "Content-Type": "application/json", // ✅ Explicit Content-Type
+          "Accept": "application/json", // ✅ Ensure JSON response format
+        },
+      );
+
+      print("📩 Response Code: ${response.statusCode}");
+      print("📩 Response Body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        print("✅ Το $platform διαγράφηκε επιτυχώς!");
+        return true;
+      } else {
+        print("❌ Σφάλμα διαγραφής του $platform: ${response.statusCode}");
+        return false;
+      }
+    } catch (e) {
+      print("❌ Σφάλμα κατά τη διαγραφή του $platform: $e");
+      return false;
+    }
+  }
 }

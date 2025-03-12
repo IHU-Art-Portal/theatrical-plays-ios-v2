@@ -26,7 +26,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Future<void> fetchUserData() async {
+    setState(() {
+      isLoading = true; // 🔹 Δείχνουμε το loading
+    });
+
     var data = await UserService.fetchUserProfile();
+
     if (mounted) {
       setState(() {
         userData = data;
@@ -35,7 +40,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         userRole = data?["role"] ?? "Χωρίς ρόλο";
         phoneNumber = data?["phoneNumber"] ?? "";
 
-        // ✅ Αν υπάρχουν social media links, τα αποθηκεύουμε
+        // ✅ Ενημέρωση Social Media URLs
         facebookUrl = data?["facebook"] ?? "";
         instagramUrl = data?["instagram"] ?? "";
         youtubeUrl = data?["youtube"] ?? "";
@@ -317,6 +322,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         title: Text("Επεξεργασία Προφίλ",
                             style: TextStyle(color: Colors.white)),
                         onTap: () async {
+                          await fetchUserData(); // 🔹 Πριν ανοίξει, φορτώνουμε τα πιο πρόσφατα δεδομένα
+
                           final updatedData = await Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -331,11 +338,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           if (updatedData != null) {
                             setState(() {
                               facebookUrl =
-                                  updatedData["facebook"] ?? facebookUrl;
+                                  updatedData["facebookUrl"] ?? facebookUrl;
                               instagramUrl =
-                                  updatedData["instagram"] ?? instagramUrl;
-                              youtubeUrl = updatedData["youtube"] ?? youtubeUrl;
+                                  updatedData["instagramUrl"] ?? instagramUrl;
+                              youtubeUrl =
+                                  updatedData["youtubeUrl"] ?? youtubeUrl;
                             });
+
+                            await fetchUserData(); // 🔹 Ξαναφορτώνουμε τα δεδομένα από το API μετά την επιστροφή
                           }
                         },
                       ),
