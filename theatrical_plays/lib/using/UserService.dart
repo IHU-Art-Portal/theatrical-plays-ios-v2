@@ -133,4 +133,41 @@ class UserService {
       return false;
     }
   }
+
+  /// ✅ **Ενημέρωση Social Media URL**
+  static Future<bool> updateSocialMedia(String platform, String url) async {
+    try {
+      if (globalAccessToken == null) {
+        print("❌ Δεν υπάρχει αποθηκευμένο token.");
+        return false;
+      }
+
+      // ✅ Διορθωμένο: Το link περνάει ως Query Parameter και όχι στο body!
+      Uri uri = Uri.parse(
+          "http://${Constants().hostName}/api/User/@/$platform?link=${Uri.encodeComponent(url)}");
+
+      print("📤 Request προς API:");
+      print("🔹 URL: $uri");
+
+      http.Response response = await http.put(
+        uri,
+        headers: {
+          "Authorization": "Bearer $globalAccessToken",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Το $platform ενημερώθηκε επιτυχώς!");
+        return true;
+      } else {
+        print("❌ Σφάλμα ενημέρωσης του $platform: ${response.statusCode}");
+        print("📩 API Response: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("❌ Σφάλμα κατά την ενημέρωση του $platform: $e");
+      return false;
+    }
+  }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/UserService.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:theatrical_plays/pages/user/EditProfileScreen.dart';
 
 class UserProfileScreen extends StatefulWidget {
   @override
@@ -13,6 +15,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   bool isPhoneVerified = false;
   String userRole = "";
   String phoneNumber = "";
+  String facebookUrl = "";
+  String instagramUrl = "";
+  String youtubeUrl = "";
 
   @override
   void initState() {
@@ -29,6 +34,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         isPhoneVerified = data?["phoneVerified"] ?? false;
         userRole = data?["role"] ?? "Χωρίς ρόλο";
         phoneNumber = data?["phoneNumber"] ?? "";
+
+        // ✅ Αν υπάρχουν social media links, τα αποθηκεύουμε
+        facebookUrl = data?["facebook"] ?? "";
+        instagramUrl = data?["instagram"] ?? "";
+        youtubeUrl = data?["youtube"] ?? "";
       });
     }
   }
@@ -205,6 +215,61 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                       SizedBox(height: 20),
 
+                      // ✅ Social Media Icons με έλεγχο αν υπάρχει URL
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // 🔵 Facebook Icon
+                          IconButton(
+                            icon: Icon(Icons.facebook,
+                                color: Colors.blue, size: 30),
+                            onPressed: () {
+                              if (facebookUrl.isNotEmpty) {
+                                openURL(facebookUrl);
+                              } else {
+                                showSnackbarMessage(
+                                    "Δεν έχεις προσθέσει Facebook!");
+                              }
+                            },
+                          ),
+
+                          SizedBox(width: 20),
+
+                          // 🟣 Instagram Icon
+                          IconButton(
+                            icon: Icon(Icons.camera_alt,
+                                color: Colors.pink, size: 30),
+                            onPressed: () {
+                              if (instagramUrl.isNotEmpty) {
+                                openURL(instagramUrl);
+                              } else {
+                                showSnackbarMessage(
+                                    "Δεν έχεις προσθέσει Instagram!");
+                              }
+                            },
+                          ),
+
+                          SizedBox(width: 20),
+
+                          // 🔴 YouTube Icon
+                          IconButton(
+                            icon: Icon(Icons.play_circle_fill,
+                                color: Colors.red, size: 30),
+                            onPressed: () {
+                              if (youtubeUrl.isNotEmpty) {
+                                openURL(youtubeUrl);
+                              } else {
+                                showSnackbarMessage(
+                                    "Δεν έχεις προσθέσει YouTube!");
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(
+                          height: 20), // ✅ Αφήνει χώρο πριν το επόμενο section
+
                       /// ✅ Αν ΔΕΝ υπάρχει αριθμός τηλεφώνου, δείξε μήνυμα και κουμπί
                       if (phoneNumber.isEmpty)
                         Column(
@@ -249,20 +314,31 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
                       ListTile(
                         leading: Icon(Icons.person, color: MyColors().cyan),
-                        title: Text(
-                          "Επεξεργασία Προφίλ",
-                          style: TextStyle(
-                              color:
-                                  isPhoneVerified ? Colors.white : Colors.grey),
-                        ),
-                        onTap: isPhoneVerified
-                            ? () {
-                                print("✏️ Επεξεργασία προφίλ...");
-                                // Άνοιξε την οθόνη επεξεργασίας προφίλ εδώ
-                              }
-                            : null, // ✅ Αν δεν είναι verified, δεν κάνει τίποτα
-                      ),
+                        title: Text("Επεξεργασία Προφίλ",
+                            style: TextStyle(color: Colors.white)),
+                        onTap: () async {
+                          final updatedData = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EditProfileScreen(
+                                facebookUrl: facebookUrl,
+                                instagramUrl: instagramUrl,
+                                youtubeUrl: youtubeUrl,
+                              ),
+                            ),
+                          );
 
+                          if (updatedData != null) {
+                            setState(() {
+                              facebookUrl =
+                                  updatedData["facebook"] ?? facebookUrl;
+                              instagramUrl =
+                                  updatedData["instagram"] ?? instagramUrl;
+                              youtubeUrl = updatedData["youtube"] ?? youtubeUrl;
+                            });
+                          }
+                        },
+                      ),
                       ListTile(
                         leading: Icon(Icons.lock, color: MyColors().cyan),
                         title: Text("Αλλαγή Κωδικού",
@@ -278,6 +354,96 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ],
                   ),
                 ),
+    );
+  }
+
+  Widget buildSocialButton(
+      String platform, String url, IconData icon, Color color) {
+    return Column(
+      children: [
+        IconButton(
+          icon: Icon(icon, color: color, size: 30),
+          onPressed: url.isNotEmpty
+              ? () => openURL(url)
+              : () => showAddSocialDialog(platform),
+        ),
+        SizedBox(height: 5),
+        Text(
+          url.isNotEmpty ? "Προφίλ $platform" : "Δεν έχει προστεθεί",
+          style: TextStyle(
+              color: url.isNotEmpty ? Colors.white : Colors.red, fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  void showAddSocialDialog(String platform) {
+    TextEditingController linkController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: MyColors().black,
+          title: Text("Προσθήκη $platform Προφίλ",
+              style: TextStyle(color: MyColors().cyan)),
+          content: TextField(
+            controller: linkController,
+            keyboardType: TextInputType.url,
+            decoration: InputDecoration(
+              labelText: "Εισάγετε το URL",
+              labelStyle: TextStyle(color: Colors.white),
+              enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: MyColors().cyan)),
+              focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: MyColors().cyan)),
+            ),
+            style: TextStyle(color: Colors.white),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Ακύρωση", style: TextStyle(color: Colors.red)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (linkController.text.isNotEmpty) {
+                  setState(() {
+                    if (platform == "Facebook") {
+                      facebookUrl = linkController.text;
+                    } else if (platform == "Instagram") {
+                      instagramUrl = linkController.text;
+                    } else if (platform == "YouTube") {
+                      youtubeUrl = linkController.text;
+                    }
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: MyColors().cyan),
+              child: Text("Αποθήκευση"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void openURL(String url) async {
+    if (await canLaunch(url)) {
+      await launch(url);
+    } else {
+      print("❌ Δεν μπόρεσε να ανοίξει το link: $url");
+    }
+  }
+
+  void showSnackbarMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.redAccent,
+        duration: Duration(seconds: 2),
+      ),
     );
   }
 }

@@ -20,6 +20,13 @@ class _LoadingHomeScreenState extends State<LoadingHomeScreen> {
   List<Actor> actors = [];
   List<Theater> theaters = [];
 
+  Future<void> loadAllData() async {
+    actors = await loadHomeActors(); // ⬅️ Φόρτωσε πρώτα τους ηθοποιούς
+    theaters = await loadHomeTheaters(); // ⬅️ Μετά τα θέατρα
+    movies =
+        await loadHomeMovies(); // ⬅️ Τελευταίο οι ταινίες (εξαρτάται από τα άλλα)
+  }
+
   // Load latest movies data from API
   Future<List<Movie>> loadHomeMovies() async {
     await loadHomeActors();
@@ -171,21 +178,15 @@ class _LoadingHomeScreenState extends State<LoadingHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: FutureBuilder<List<Movie>>(
-        future: loadHomeMovies(),
-        builder: (BuildContext context, AsyncSnapshot<List<Movie>> snapshot) {
+      body: FutureBuilder<void>(
+        future: loadAllData(), // ✅ Φορτώνουμε όλες τις λίστες μαζί
+        builder: (BuildContext context, AsyncSnapshot<void> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Loading(); // Show loading indicator while data is being fetched
+            return Loading(); // 🔄 Δείχνουμε το animation φόρτωσης
           } else if (snapshot.hasError) {
             return Center(child: Text("Error loading data"));
-          } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-            return HomeScreen(
-              homeMovies: movies, // Pass the movies list as homeMovies
-              homeActors: actors, // Pass the actors list as homeActors
-              homeTheaters: theaters, // Pass the theaters list as homeTheaters
-            ); // Pass the fetched data to the HomeScreen widget
           } else {
-            return Center(child: Text("No movies available"));
+            return HomeScreen(); // ✅ Όταν ολοκληρωθεί, μεταβαίνουμε στο HomeScreen
           }
         },
       ),
