@@ -3,14 +3,16 @@ import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/UserService.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  String facebookUrl;
-  String instagramUrl;
-  String youtubeUrl;
+  final String facebookUrl;
+  final String instagramUrl;
+  final String youtubeUrl;
+  final bool is2FAEnabled; // ✅ Δηλώνουμε σωστά το is2FAEnabled
 
   EditProfileScreen({
     required this.facebookUrl,
     required this.instagramUrl,
     required this.youtubeUrl,
+    required this.is2FAEnabled, // ✅ Πρέπει να περνάει από το UserProfileScreen
   });
 
   @override
@@ -26,11 +28,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool isEditingInstagram = false;
   bool isEditingYouTube = false;
   String profilePictureUrl = "";
+  bool is2FAEnabled = false;
 
   @override
   void initState() {
     super.initState();
-    fetchUserProfile(); // 🔹 Φόρτωσε τα social links από το API
+    is2FAEnabled = widget.is2FAEnabled; // ✅ Φόρτωση αρχικής τιμής
+    fetchUserProfile();
   }
 
   void fetchUserProfile() async {
@@ -38,9 +42,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     if (profileData != null) {
       setState(() {
-        facebookController.text = profileData["facebook"] ?? "";
-        instagramController.text = profileData["instagram"] ?? "";
-        youtubeController.text = profileData["youtube"] ?? "";
+        facebookController.text = profileData["facebookUrl"] ?? "";
+        instagramController.text = profileData["instagramUrl"] ?? "";
+        youtubeController.text = profileData["youtubeUrl"] ?? "";
+        is2FAEnabled =
+            profileData["twoFactorEnabled"] ?? false; // ✅ Διορθώθηκε!
       });
     }
   }
@@ -62,7 +68,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     if (success) {
-      fetchUserProfile(); // 🔹 Ξαναφορτώνουμε τα δεδομένα από το API
+      fetchUserProfile(); // 🔹 Φόρτωση των νέων δεδομένων από το API
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -72,11 +78,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       );
 
-      // 🔹 Επιστρέφουμε τα νέα δεδομένα στην `UserProfileScreen`
       Navigator.pop(context, {
         "facebookUrl": facebookController.text,
         "instagramUrl": instagramController.text,
         "youtubeUrl": youtubeController.text,
+        "twoFactorEnabled": is2FAEnabled, // ✅ Επιστρέφουμε το 2FA status
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -125,6 +131,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               onPressed: saveProfile,
               style: ElevatedButton.styleFrom(backgroundColor: MyColors().cyan),
               child: Text("Αποθήκευση", style: TextStyle(color: Colors.white)),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Two-Step Security",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+                Switch(
+                  value: is2FAEnabled, // ✅ Το UI ενημερώνεται σωστά
+                  activeColor: Colors.green,
+                  onChanged: (bool value) {
+                    setState(() {
+                      is2FAEnabled =
+                          value; // 🔹 Αλλαγή τιμής στο UI πριν καλέσουμε το API
+                    });
+
+                    if (value) {
+                      enable2FA();
+                    } else {
+                      disable2FA();
+                    }
+                  },
+                ),
+              ],
             ),
           ],
         ),
@@ -211,6 +242,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           duration: Duration(seconds: 2),
         ),
       );
+    }
+  }
+
+  void enable2FA() async {
+    bool success = await UserService.enable2FA();
+    if (success) {
+      fetchUserProfile(); // ✅ Ξαναφορτώνουμε τα δεδομένα από το API
+    } else {
+      setState(() {
+        is2FAEnabled = false; // 🔹 Αν αποτύχει, το αφήνουμε απενεργοποιημένο
+      });
+    }
+  }
+
+  void disable2FA() async {
+    bool success = await UserService.disable2FA();
+    if (success) {
+      fetchUserProfile(); // ✅ Ξαναφορτώνουμε τα δεδομένα από το API
+    } else {
+      setState(() {
+        is2FAEnabled = true; // 🔹 Αν αποτύχει, το αφήνουμε ενεργοποιημένο
+      });
     }
   }
 }

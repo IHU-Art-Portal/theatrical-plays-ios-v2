@@ -5,6 +5,8 @@ import 'package:theatrical_plays/using/globals.dart';
 
 class UserService {
   static Future<Map<String, dynamic>?> fetchUserProfile() async {
+    print("📤 Fetching user profile...");
+
     try {
       if (globalAccessToken == null) {
         print("❌ Δεν υπάρχει αποθηκευμένο token.");
@@ -23,47 +25,28 @@ class UserService {
 
       if (response.statusCode == 200) {
         Map<String, dynamic> jsonData = jsonDecode(response.body);
-        return jsonData['data']; // 🔹 Επιστρέφουμε μόνο τα δεδομένα του χρήστη
+        print("✅ User Info Loaded: ${jsonData['data']}");
+
+        return {
+          "facebookUrl": jsonData['data']["facebook"] ?? "",
+          "instagramUrl": jsonData['data']["instagram"] ?? "",
+          "youtubeUrl": jsonData['data']["youtube"] ?? "",
+          "twoFactorEnabled": jsonData['data']["_2FA_enabled"] ?? false,
+          "email": jsonData['data']["email"] ?? "Δεν υπάρχει email",
+          "role": jsonData['data']["role"] ?? "Χωρίς ρόλο",
+          "credits": jsonData['data']["balance"] ?? 0.0,
+          "phoneNumber": jsonData['data']["phoneNumber"] ?? "",
+          "phoneVerified":
+              jsonData['data']["phoneVerified"] ?? false, // ✅ Προσθήκη
+        };
       } else {
         print("❌ Σφάλμα στο API: ${response.statusCode}");
-        print("📩 Απάντηση από API: ${response.body}");
+        print("📩 API Response: ${response.body}");
         return null;
       }
     } catch (e) {
       print("❌ Σφάλμα κατά την ανάκτηση του προφίλ: $e");
       return null;
-    }
-  }
-
-  static Future<bool> verifyPhoneNumber() async {
-    try {
-      if (globalAccessToken == null) {
-        print("❌ Δεν υπάρχει αποθηκευμένο token.");
-        return false;
-      }
-
-      Uri uri =
-          Uri.parse("http://${Constants().hostName}/api/user/verify-phone");
-
-      http.Response response = await http.post(
-        uri,
-        headers: {
-          "Authorization": "Bearer $globalAccessToken",
-          "Content-Type": "application/json",
-        },
-      );
-
-      if (response.statusCode == 200) {
-        print("✅ Ο αριθμός τηλεφώνου επιβεβαιώθηκε επιτυχώς!");
-        return true;
-      } else {
-        print("❌ Σφάλμα επιβεβαίωσης τηλεφώνου: ${response.statusCode}");
-        print("📩 API Response: ${response.body}");
-        return false;
-      }
-    } catch (e) {
-      print("❌ Σφάλμα επιβεβαίωσης τηλεφώνου: $e");
-      return false;
     }
   }
 
@@ -206,6 +189,61 @@ class UserService {
       }
     } catch (e) {
       print("❌ Σφάλμα κατά τη διαγραφή του $platform: $e");
+      return false;
+    }
+  }
+
+  static Future<bool> enable2FA() async {
+    if (globalAccessToken == null) {
+      print("❌ Δεν υπάρχει αποθηκευμένο JWT Token!");
+      return false;
+    }
+
+    Uri uri = Uri.parse("http://${Constants().hostName}/api/User/enable2fa");
+
+    http.Response response = await http.post(
+      uri,
+      headers: {
+        "Authorization": "Bearer $globalAccessToken",
+        "Content-Type": "application/json",
+      },
+    );
+
+    print(
+        "📩 API Response: ${response.body}"); // ✅ Εκτυπώνουμε την απάντηση του API
+
+    if (response.statusCode == 200) {
+      print("✅ Two-Step Security ενεργοποιήθηκε!");
+      return true;
+    } else {
+      print("❌ Σφάλμα ενεργοποίησης 2FA: ${response.statusCode}");
+      print(
+          "📩 API Error Message: ${response.body}"); // 🔹 Εκτύπωση μηνύματος λάθους
+      return false;
+    }
+  }
+
+  static Future<bool> disable2FA() async {
+    try {
+      Uri uri = Uri.parse("http://${Constants().hostName}/api/User/disable2fa");
+
+      http.Response response = await http.post(
+        uri,
+        headers: {
+          "Authorization": "Bearer $globalAccessToken",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Two-Step Security απενεργοποιήθηκε!");
+        return true;
+      } else {
+        print("❌ Σφάλμα απενεργοποίησης 2FA: ${response.statusCode}");
+        return false;
+      }
+    } catch (e) {
+      print("❌ Σφάλμα κατά την απενεργοποίηση του 2FA: $e");
       return false;
     }
   }
