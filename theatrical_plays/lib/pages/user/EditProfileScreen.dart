@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/UserService.dart';
+import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final String facebookUrl;
@@ -29,10 +30,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool isEditingYouTube = false;
   String profilePictureUrl = "";
   bool is2FAEnabled = false;
-  String phoneNumber = ""; // ✅ Κρατάει τον αριθμό τηλεφώνου του χρήστη
+  // String phoneNumber = ""; // ✅ Κρατάει τον αριθμό τηλεφώνου του χρήστη
   bool phoneVerified = false; // ✅ Δείχνει αν το τηλέφωνο είναι verified
   double balance = 0.0; // ✅ Διατηρούμε το υπόλοιπο του χρήστη
-
+  PhoneNumber?
+      phoneNumber; // Αποθηκεύει τον αριθμό τηλεφώνου με τον κωδικό χώρας
+  final TextEditingController phoneController = TextEditingController();
   @override
   void initState() {
     super.initState();
@@ -49,10 +52,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         instagramController.text = profileData["instagramUrl"] ?? "";
         youtubeController.text = profileData["youtubeUrl"] ?? "";
         is2FAEnabled = profileData["twoFactorEnabled"] ?? false;
-        phoneNumber = profileData["phoneNumber"] ?? ""; // ✅ Φόρτωση τηλεφώνου
+        phoneController.text = profileData["phoneNumber"] ??
+            ""; // ✅ Αντίστοιχη ανάθεση για το phoneController
         phoneVerified =
-            profileData["phoneVerified"] ?? false; // ✅ Επιβεβαίωση τηλεφώνου
-        balance = profileData["credits"] ?? 0.0; // ✅ Φόρτωση balance από API
+            profileData["phoneVerified"] ?? false; // ✅ Φόρτωση από το API
+        balance = profileData["credits"] ?? 0.0;
+
+        // ✅ Ανάθεση σωστής τιμής στο phoneNumber με ISO code
+        phoneNumber = PhoneNumber(
+          phoneNumber: profileData["phoneNumber"] ?? "",
+          isoCode: "GR", // Προκαθορισμένη χώρα
+        );
       });
     }
   }
@@ -149,16 +159,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 Row(
                   children: [
                     Icon(
-                      phoneNumber.isNotEmpty
+                      phoneController.text.isNotEmpty
                           ? Icons.check_circle
                           : Icons.warning,
-                      color:
-                          phoneNumber.isNotEmpty ? Colors.green : Colors.orange,
+                      color: phoneController.text.isNotEmpty
+                          ? Colors.green
+                          : Colors.orange,
                     ),
                     SizedBox(width: 10),
                     Text(
-                      phoneNumber.isNotEmpty
-                          ? "Τηλέφωνο: $phoneNumber"
+                      phoneController.text.isNotEmpty
+                          ? "Τηλέφωνο: ${phoneController.text}"
                           : "Δεν έχει προστεθεί τηλέφωνο",
                       style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
@@ -168,21 +179,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   children: [
                     IconButton(
                       icon: Icon(Icons.edit, color: MyColors().cyan),
-                      onPressed:
-                          promptForPhoneNumber, // ✅ Προσθήκη ή επεξεργασία τηλεφώνου
+                      onPressed: promptForPhoneNumber, // Επεξεργασία τηλεφώνου
                     ),
-                    if (phoneNumber
-                        .isNotEmpty) // ✅ Διαγραφή αν υπάρχει τηλέφωνο
+                    if (phoneController.text.isNotEmpty) // Αν υπάρχει τηλέφωνο
                       IconButton(
                         icon: Icon(Icons.delete, color: Colors.red),
-                        onPressed: handleDeletePhoneNumber,
+                        onPressed:
+                            handleDeletePhoneNumber, // Διαγραφή τηλεφώνου
                       ),
                   ],
                 ),
               ],
             ),
-            SizedBox(width: 10),
-            if (phoneNumber.isNotEmpty && !phoneVerified) ...[
+            if (phoneController.text.isNotEmpty && !phoneVerified) ...[
               SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -347,20 +356,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void promptForPhoneNumber() {
-    TextEditingController phoneController = TextEditingController();
-    phoneController.text = phoneNumber; // ✅ Αν υπάρχει τηλέφωνο, το εμφανίζουμε
-
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(phoneNumber.isEmpty
+          title: Text(phoneController.text.isEmpty
               ? "Προσθήκη τηλεφώνου"
               : "Επεξεργασία τηλεφώνου"),
-          content: TextField(
-            controller: phoneController,
-            keyboardType: TextInputType.phone,
-            decoration: InputDecoration(labelText: "Αριθμός τηλεφώνου"),
+          content: InternationalPhoneNumberInput(
+            onInputChanged: (PhoneNumber number) {
+              setState(() {
+                phoneNumber =
+                    number; // ✅ Ενημέρωση του phoneNumber αντικειμένου
+              });
+            },
+            selectorConfig: SelectorConfig(
+              selectorType: PhoneInputSelectorType
+                  .DROPDOWN, // ✅ Dropdown για επιλογή χώρας
+            ),
+            ignoreBlank: false,
+            autoValidateMode: AutovalidateMode.disabled,
+            initialValue: phoneNumber, // ✅ Ανάθεση του phoneNumber
+            textFieldController: phoneController,
+            formatInput: true,
+            inputDecoration: InputDecoration(
+              labelText: "Αριθμός τηλεφώνου",
+              labelStyle: TextStyle(color: Colors.white),
+              enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: MyColors().cyan)),
+              focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: MyColors().cyan)),
+            ),
           ),
           actions: [
             TextButton(
@@ -369,13 +395,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                String phone = phoneController.text.trim();
-                if (phone.isNotEmpty && phone != phoneNumber) {
-                  // ✅ Αλλαγή μόνο αν είναι νέο
-                  bool success = await UserService.registerPhoneNumber(phone);
+                String formattedPhone =
+                    phoneNumber?.phoneNumber ?? phoneController.text;
+
+                if (formattedPhone.isNotEmpty &&
+                    formattedPhone != phoneController.text) {
+                  bool success =
+                      await UserService.registerPhoneNumber(formattedPhone);
                   if (success) {
                     setState(() {
-                      phoneNumber = phone; // ✅ Ενημέρωση UI με το νέο τηλέφωνο
+                      phoneController.text =
+                          formattedPhone; // ✅ Ενημέρωση UI με τον νέο αριθμό
                     });
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -408,7 +438,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   void promptForPhoneVerification() {
     if (balance < 10) {
-      // ✅ Έλεγχος αν έχει αρκετά credits
+      // Έλεγχος αν υπάρχουν αρκετά credits
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("❌ Δεν έχετε αρκετά credits για την επιβεβαίωση!"),
@@ -433,14 +463,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                Navigator.pop(context); // ✅ Κλείσιμο του πρώτου popup
+                Navigator.pop(context);
                 print("📤 Κλήση API: request-verification-phone-number...");
 
                 bool success = await UserService.requestPhoneVerification();
 
                 if (success) {
                   print("✅ Το API κάλεστηκε επιτυχώς και ο κωδικός στάλθηκε!");
-                  showOtpPrompt(); // ✅ Αν πετύχει, ανοίγει το OTP prompt
+                  showOtpPrompt();
                 } else {
                   print("❌ Αποτυχία αποστολής OTP μέσω API!");
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -465,7 +495,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     if (success) {
       setState(() {
-        phoneNumber = ""; // ✅ Καθαρίζουμε το UI
+        phoneController.text = ""; // ✅ Καθαρίζουμε το UI
+        phoneNumber = null; // ✅ Μηδενίζουμε το αντικείμενο PhoneNumber
+        phoneVerified = false; // ✅ Μηδενίζουμε το phoneVerified
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -513,7 +545,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   if (success) {
                     setState(() {
                       phoneVerified = true;
-                      balance -= 10; // ✅ Αφαίρεση 10 credits
+                      balance -= 10; // Αφαίρεση 10 credits
                     });
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
