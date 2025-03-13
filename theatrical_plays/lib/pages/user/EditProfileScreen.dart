@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/UserService.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart';
+import 'package:flutter/cupertino.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final String facebookUrl;
@@ -227,7 +228,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   "Two-Step Security",
                   style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
-                Switch(
+                CupertinoSwitch(
                   value: is2FAEnabled, // ✅ Το UI ενημερώνεται σωστά
                   activeColor: Colors.green,
                   onChanged: (bool value) {
