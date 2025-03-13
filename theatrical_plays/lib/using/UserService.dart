@@ -91,7 +91,7 @@ class UserService {
       }
 
       Uri uri = Uri.parse(
-          "http://${Constants().hostName}/api/user/confirm-verification-phone-number");
+          "http://${Constants().hostName}/api/user/confirm-verification-phone-number?verificationCode=${Uri.encodeComponent(verificationCode)}");
 
       http.Response response = await http.post(
         uri,
@@ -99,9 +99,6 @@ class UserService {
           "Authorization": "Bearer $globalAccessToken",
           "Content-Type": "application/json",
         },
-        body: jsonEncode({
-          "verificationCode": verificationCode, // ✅ Στέλνουμε τον κωδικό OTP
-        }),
       );
 
       if (response.statusCode == 200) {
@@ -114,6 +111,39 @@ class UserService {
       }
     } catch (e) {
       print("❌ Σφάλμα επιβεβαίωσης τηλεφώνου: $e");
+      return false;
+    }
+  }
+
+  static Future<bool> requestPhoneVerification() async {
+    try {
+      if (globalAccessToken == null) {
+        print("❌ Δεν υπάρχει αποθηκευμένο token.");
+        return false;
+      }
+
+      Uri uri = Uri.parse(
+          "http://${Constants().hostName}/api/User/request-verification-phone-number");
+
+      http.Response response = await http.post(
+        uri,
+        headers: {
+          "Authorization": "Bearer $globalAccessToken",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Ο κωδικός επιβεβαίωσης στάλθηκε στο κινητό!");
+        return true;
+      } else {
+        print(
+            "❌ Σφάλμα αποστολής κωδικού επιβεβαίωσης: ${response.statusCode}");
+        print("📩 API Response: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("❌ Σφάλμα κατά την αποστολή κωδικού επιβεβαίωσης: $e");
       return false;
     }
   }

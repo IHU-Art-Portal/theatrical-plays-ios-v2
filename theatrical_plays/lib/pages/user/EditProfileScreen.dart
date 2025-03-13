@@ -50,8 +50,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         youtubeController.text = profileData["youtubeUrl"] ?? "";
         is2FAEnabled = profileData["twoFactorEnabled"] ?? false;
         phoneNumber = profileData["phoneNumber"] ?? ""; // ✅ Φόρτωση τηλεφώνου
-        phoneVerified = profileData["phoneVerified"] ??
-            false; // ✅ Έλεγχος επιβεβαίωσης τηλεφώνου
+        phoneVerified =
+            profileData["phoneVerified"] ?? false; // ✅ Επιβεβαίωση τηλεφώνου
+        balance = profileData["credits"] ?? 0.0; // ✅ Φόρτωση balance από API
       });
     }
   }
@@ -406,18 +407,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void promptForPhoneVerification() {
-    TextEditingController codeController = TextEditingController();
+    if (balance < 10) {
+      // ✅ Έλεγχος αν έχει αρκετά credits
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("❌ Δεν έχετε αρκετά credits για την επιβεβαίωση!"),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Επιβεβαίωση τηλεφώνου"),
-          content: TextField(
-            controller: codeController,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: "Κωδικός OTP"),
-          ),
+          title: Text("Επιβεβαίωση Χρέωσης"),
+          content: Text(
+              "Αυτή η ενέργεια θα αφαιρέσει 10 credits από το υπόλοιπό σας. Θέλετε να συνεχίσετε;"),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -425,26 +433,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                String code = codeController.text.trim();
-                if (code.isNotEmpty) {
-                  bool success =
-                      await UserService.confirmPhoneVerification(code);
-                  if (success) {
-                    setState(() {
-                      phoneVerified = true;
-                    });
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("✅ Το τηλέφωνο επιβεβαιώθηκε!"),
-                        backgroundColor: Colors.green,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  }
+                Navigator.pop(context); // ✅ Κλείσιμο του πρώτου popup
+                print("📤 Κλήση API: request-verification-phone-number...");
+
+                bool success = await UserService.requestPhoneVerification();
+
+                if (success) {
+                  print("✅ Το API κάλεστηκε επιτυχώς και ο κωδικός στάλθηκε!");
+                  showOtpPrompt(); // ✅ Αν πετύχει, ανοίγει το OTP prompt
+                } else {
+                  print("❌ Αποτυχία αποστολής OTP μέσω API!");
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("❌ Αποτυχία αποστολής OTP!"),
+                      backgroundColor: Colors.red,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
                 }
               },
-              child: Text("Επιβεβαίωση"),
+              child: Text("Ναι, συνέχισε"),
             ),
           ],
         );
@@ -476,5 +484,61 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       );
     }
+  }
+
+  void showOtpPrompt() {
+    TextEditingController codeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Εισαγωγή OTP Κωδικού"),
+          content: TextField(
+            controller: codeController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(labelText: "Κωδικός OTP"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Ακύρωση"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                String code = codeController.text.trim();
+                if (code.isNotEmpty) {
+                  bool success =
+                      await UserService.confirmPhoneVerification(code);
+                  if (success) {
+                    setState(() {
+                      phoneVerified = true;
+                      balance -= 10; // ✅ Αφαίρεση 10 credits
+                    });
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("✅ Το τηλέφωνο επιβεβαιώθηκε!"),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("❌ Λάθος OTP! Προσπαθήστε ξανά."),
+                        backgroundColor: Colors.red,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                }
+              },
+              child: Text("Επιβεβαίωση"),
+            ),
+          ],
+        );
+      },
+    );
   }
 }

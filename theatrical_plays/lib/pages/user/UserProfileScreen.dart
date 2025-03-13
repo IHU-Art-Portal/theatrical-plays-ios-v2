@@ -12,11 +12,9 @@ class UserProfileScreen extends StatefulWidget {
 class _UserProfileScreenState extends State<UserProfileScreen> {
   Map<String, dynamic>? userData;
   bool isLoading = true;
-  bool isPhoneVerified = false;
   String userRole = "";
   String userEmail = "";
   double userCredits = 0.0;
-  String phoneNumber = "";
   String facebookUrl = "";
   String instagramUrl = "";
   String youtubeUrl = "";
@@ -46,8 +44,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         userEmail = data["email"] ?? "Δεν υπάρχει email";
         userRole = data["role"] ?? "Χωρίς ρόλο";
         userCredits = data["credits"] ?? 0.0;
-        phoneNumber = data["phoneNumber"] ?? "";
-        isPhoneVerified = data["phoneVerified"] ?? false; // ✅ ΠΡΟΣΘΗΚΗ
       });
 
       print("✅ User Data updated successfully: $userData");
@@ -58,124 +54,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
       print("❌ Failed to load user data!");
     }
-  }
-
-  void showPhoneVerificationDialog() {
-    TextEditingController otpController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: MyColors().black,
-          title: Text("Επιβεβαίωση Τηλεφώνου",
-              style: TextStyle(color: MyColors().cyan)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: otpController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: "Εισαγωγή OTP",
-                  labelStyle: TextStyle(color: Colors.white),
-                  enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: MyColors().cyan)),
-                  focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: MyColors().cyan)),
-                ),
-                style: TextStyle(color: Colors.white),
-              ),
-              SizedBox(height: 10),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text("Ακύρωση", style: TextStyle(color: Colors.red)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (otpController.text.isEmpty) {
-                  print("❌ Παρακαλώ εισάγετε τον κωδικό OTP!");
-                  return;
-                }
-
-                bool success = await UserService.confirmPhoneVerification(
-                    otpController.text);
-                if (success) {
-                  print("✅ Ο αριθμός τηλεφώνου επιβεβαιώθηκε!");
-                  setState(() {
-                    isPhoneVerified = true;
-                  });
-                  fetchUserData(); // Ανανεώνει τα δεδομένα χρήστη
-                  Navigator.pop(context);
-                } else {
-                  print("❌ Αποτυχία επιβεβαίωσης τηλεφώνου!");
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: MyColors().cyan),
-              child: Text("Επιβεβαίωση"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  /// ✅ Μέθοδος για εισαγωγή αριθμού τηλεφώνου
-  void showPhoneRegistrationDialog() {
-    TextEditingController phoneController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: MyColors().black,
-          title: Text("Καταχώρηση Τηλεφώνου",
-              style: TextStyle(color: MyColors().cyan)),
-          content: TextField(
-            controller: phoneController,
-            keyboardType: TextInputType.phone,
-            decoration: InputDecoration(
-              labelText: "Αριθμός τηλεφώνου",
-              labelStyle: TextStyle(color: Colors.white),
-              enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: MyColors().cyan)),
-              focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: MyColors().cyan)),
-            ),
-            style: TextStyle(color: Colors.white),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text("Ακύρωση", style: TextStyle(color: Colors.red)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (phoneController.text.isEmpty) {
-                  print("❌ Δεν έχετε εισάγει αριθμό τηλεφώνου!");
-                  return;
-                }
-
-                bool success =
-                    await UserService.registerPhoneNumber(phoneController.text);
-                if (success) {
-                  print("✅ Ο αριθμός τηλεφώνου καταχωρήθηκε!");
-                  fetchUserData(); // Ανανεώνει τα δεδομένα του χρήστη
-                  Navigator.pop(context);
-                } else {
-                  print("❌ Αποτυχία καταχώρησης τηλεφώνου!");
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: MyColors().cyan),
-              child: Text("Καταχώρηση"),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   Widget buildProfileScreen() {
@@ -218,13 +96,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
           SizedBox(height: 20),
 
-          /// ✅ Αν ΔΕΝ υπάρχει αριθμός τηλεφώνου, δείξε μήνυμα και κουμπί
-          if (phoneNumber.isEmpty) buildPhoneRegistration(),
-
-          /// ✅ Αν το τηλέφωνο ΔΕΝ είναι επιβεβαιωμένο, δείξε μήνυμα
-          if (phoneNumber.isNotEmpty && !isPhoneVerified)
-            buildPhoneVerification(),
-
           Divider(color: MyColors().gray),
 
           buildProfileActions(),
@@ -264,42 +135,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           style: TextStyle(
               color: url.isNotEmpty ? Colors.white : Colors.red, fontSize: 12),
         ),
-      ],
-    );
-  }
-
-  Widget buildPhoneRegistration() {
-    return Column(
-      children: [
-        Text(
-          "⚠️ Δεν έχετε καταχωρήσει αριθμό τηλεφώνου!",
-          style: TextStyle(color: Colors.orange, fontSize: 16),
-        ),
-        SizedBox(height: 10),
-        ElevatedButton(
-          onPressed: showPhoneRegistrationDialog,
-          style: ElevatedButton.styleFrom(backgroundColor: MyColors().cyan),
-          child: Text("Καταχώρηση Τηλεφώνου"),
-        ),
-        SizedBox(height: 20),
-      ],
-    );
-  }
-
-  Widget buildPhoneVerification() {
-    return Column(
-      children: [
-        Text(
-          "⚠️ Το τηλέφωνό σας δεν είναι επιβεβαιωμένο!",
-          style: TextStyle(color: Colors.red, fontSize: 16),
-        ),
-        SizedBox(height: 10),
-        ElevatedButton(
-          onPressed: showPhoneVerificationDialog,
-          style: ElevatedButton.styleFrom(backgroundColor: MyColors().cyan),
-          child: Text("Επιβεβαίωση Τηλεφώνου"),
-        ),
-        SizedBox(height: 20),
       ],
     );
   }
