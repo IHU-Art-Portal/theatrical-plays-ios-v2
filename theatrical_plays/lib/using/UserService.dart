@@ -57,8 +57,9 @@ class UserService {
         return false;
       }
 
+      // ✅ Χρησιμοποιούμε query parameter αντί για body
       Uri uri = Uri.parse(
-          "http://${Constants().hostName}/api/User/register/phoneNumber?phoneNumber=$phoneNumber");
+          "http://${Constants().hostName}/api/User/register/phoneNumber?phoneNumber=${Uri.encodeComponent(phoneNumber)}");
 
       http.Response response = await http.post(
         uri,
@@ -72,12 +73,12 @@ class UserService {
         print("✅ Ο αριθμός τηλεφώνου καταχωρήθηκε επιτυχώς!");
         return true;
       } else {
-        print("❌ Σφάλμα καταχώρησης αριθμού τηλεφώνου: ${response.statusCode}");
+        print("❌ Σφάλμα καταχώρισης αριθμού τηλεφώνου: ${response.statusCode}");
         print("📩 API Response: ${response.body}");
         return false;
       }
     } catch (e) {
-      print("❌ Σφάλμα κατά την καταχώρηση τηλεφώνου: $e");
+      print("❌ Σφάλμα κατά την καταχώριση τηλεφώνου: $e");
       return false;
     }
   }
@@ -113,6 +114,38 @@ class UserService {
       }
     } catch (e) {
       print("❌ Σφάλμα επιβεβαίωσης τηλεφώνου: $e");
+      return false;
+    }
+  }
+
+  static Future<bool> deletePhoneNumber() async {
+    try {
+      if (globalAccessToken == null) {
+        print("❌ Δεν υπάρχει αποθηκευμένο token.");
+        return false;
+      }
+
+      Uri uri = Uri.parse(
+          "http://${Constants().hostName}/api/User/remove/phoneNumber");
+
+      http.Response response = await http.delete(
+        uri,
+        headers: {
+          "Authorization": "Bearer $globalAccessToken",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Το τηλέφωνο διαγράφηκε επιτυχώς!");
+        return true;
+      } else {
+        print("❌ Σφάλμα διαγραφής τηλεφώνου: ${response.statusCode}");
+        print("📩 API Response: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("❌ Σφάλμα κατά τη διαγραφή του τηλεφώνου: $e");
       return false;
     }
   }

@@ -29,6 +29,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool isEditingYouTube = false;
   String profilePictureUrl = "";
   bool is2FAEnabled = false;
+  String phoneNumber = ""; // ✅ Κρατάει τον αριθμό τηλεφώνου του χρήστη
+  bool phoneVerified = false; // ✅ Δείχνει αν το τηλέφωνο είναι verified
+  double balance = 0.0; // ✅ Διατηρούμε το υπόλοιπο του χρήστη
 
   @override
   void initState() {
@@ -45,8 +48,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         facebookController.text = profileData["facebookUrl"] ?? "";
         instagramController.text = profileData["instagramUrl"] ?? "";
         youtubeController.text = profileData["youtubeUrl"] ?? "";
-        is2FAEnabled =
-            profileData["twoFactorEnabled"] ?? false; // ✅ Διορθώθηκε!
+        is2FAEnabled = profileData["twoFactorEnabled"] ?? false;
+        phoneNumber = profileData["phoneNumber"] ?? ""; // ✅ Φόρτωση τηλεφώνου
+        phoneVerified = profileData["phoneVerified"] ??
+            false; // ✅ Έλεγχος επιβεβαίωσης τηλεφώνου
       });
     }
   }
@@ -132,6 +137,79 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: MyColors().cyan),
               child: Text("Αποθήκευση", style: TextStyle(color: Colors.white)),
             ),
+            SizedBox(height: 20),
+            Divider(color: Colors.white54), // 🔹 Διαχωριστική γραμμή
+
+            SizedBox(height: 10),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      phoneNumber.isNotEmpty
+                          ? Icons.check_circle
+                          : Icons.warning,
+                      color:
+                          phoneNumber.isNotEmpty ? Colors.green : Colors.orange,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      phoneNumber.isNotEmpty
+                          ? "Τηλέφωνο: $phoneNumber"
+                          : "Δεν έχει προστεθεί τηλέφωνο",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.edit, color: MyColors().cyan),
+                      onPressed:
+                          promptForPhoneNumber, // ✅ Προσθήκη ή επεξεργασία τηλεφώνου
+                    ),
+                    if (phoneNumber
+                        .isNotEmpty) // ✅ Διαγραφή αν υπάρχει τηλέφωνο
+                      IconButton(
+                        icon: Icon(Icons.delete, color: Colors.red),
+                        onPressed: handleDeletePhoneNumber,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            SizedBox(width: 10),
+            if (phoneNumber.isNotEmpty && !phoneVerified) ...[
+              SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.warning, color: Colors.orange),
+                      SizedBox(width: 10),
+                      Text(
+                        "Δεν έχει επιβεβαιωθεί",
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                  ElevatedButton(
+                    onPressed: promptForPhoneVerification,
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange),
+                    child: Text("Επιβεβαίωση",
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ],
+
+            SizedBox(
+                height: 10), // ✅ Πρόσθεσε απόσταση πριν το Two-Step Security
+
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -156,9 +234,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   },
                 ),
               ],
-            ),
+            ), // ✅ Κλείνουμε το Row σωστά
           ],
-        ),
+        ), // ✅ Κλείνουμε το Column σωστά
       ),
     );
   }
@@ -264,6 +342,139 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       setState(() {
         is2FAEnabled = true; // 🔹 Αν αποτύχει, το αφήνουμε ενεργοποιημένο
       });
+    }
+  }
+
+  void promptForPhoneNumber() {
+    TextEditingController phoneController = TextEditingController();
+    phoneController.text = phoneNumber; // ✅ Αν υπάρχει τηλέφωνο, το εμφανίζουμε
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(phoneNumber.isEmpty
+              ? "Προσθήκη τηλεφώνου"
+              : "Επεξεργασία τηλεφώνου"),
+          content: TextField(
+            controller: phoneController,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(labelText: "Αριθμός τηλεφώνου"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Ακύρωση"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                String phone = phoneController.text.trim();
+                if (phone.isNotEmpty && phone != phoneNumber) {
+                  // ✅ Αλλαγή μόνο αν είναι νέο
+                  bool success = await UserService.registerPhoneNumber(phone);
+                  if (success) {
+                    setState(() {
+                      phoneNumber = phone; // ✅ Ενημέρωση UI με το νέο τηλέφωνο
+                    });
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("✅ Το τηλέφωνο αποθηκεύτηκε!"),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("❌ Αποτυχία αποθήκευσης τηλεφώνου!"),
+                        backgroundColor: Colors.red,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                } else {
+                  Navigator.pop(context); // ✅ Αν δεν αλλάχθηκε, απλά κλείνουμε
+                }
+              },
+              child: Text("Αποθήκευση"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void promptForPhoneVerification() {
+    TextEditingController codeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Επιβεβαίωση τηλεφώνου"),
+          content: TextField(
+            controller: codeController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(labelText: "Κωδικός OTP"),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Ακύρωση"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                String code = codeController.text.trim();
+                if (code.isNotEmpty) {
+                  bool success =
+                      await UserService.confirmPhoneVerification(code);
+                  if (success) {
+                    setState(() {
+                      phoneVerified = true;
+                    });
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("✅ Το τηλέφωνο επιβεβαιώθηκε!"),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                }
+              },
+              child: Text("Επιβεβαίωση"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void handleDeletePhoneNumber() async {
+    bool success = await UserService.deletePhoneNumber();
+
+    if (success) {
+      setState(() {
+        phoneNumber = ""; // ✅ Καθαρίζουμε το UI
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("✅ Το τηλέφωνο διαγράφηκε!"),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("❌ Αποτυχία διαγραφής τηλεφώνου!"),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 }
