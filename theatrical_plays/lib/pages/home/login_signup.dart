@@ -570,6 +570,11 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
             SnackBar(content: Text("Login failed: No access token received")),
           );
         }
+      }
+      // 🔹 **Έλεγχος αν το API επιστρέψει 409 (2FA ενεργοποιημένο)**
+      else if (response.statusCode == 409) {
+        print("⚠️ 2FA Enabled! Requesting OTP Code...");
+        showOtpDialog(email);
       } else if (response.statusCode == 401) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Wrong credentials, please try again")),
@@ -586,40 +591,116 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     }
   }
 
-  void showOtpDialog(String phoneNumber) {
-    String otpCode = "";
+  void showOtpDialog(String email) {
+    TextEditingController otpController = TextEditingController();
+
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Enter OTP"),
+          backgroundColor: MyColors().black,
+          title: Text("Εισαγωγή OTP Κωδικού",
+              style: TextStyle(color: MyColors().cyan)),
           content: TextField(
-            onChanged: (value) {
-              otpCode = value;
-            },
+            controller: otpController,
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(hintText: "Enter OTP Code"),
+            decoration: InputDecoration(
+              labelText: "Εισάγετε τον κωδικό OTP",
+              labelStyle: TextStyle(color: Colors.white),
+              enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: MyColors().cyan)),
+              focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: MyColors().cyan)),
+            ),
+            style: TextStyle(color: Colors.white),
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                if (otpCode.length == 6) {
-                  // Προσωρινή επιβεβαίωση OTP (θα πρέπει να γίνει μέσω Twilio)
+              onPressed: () => Navigator.pop(context),
+              child: Text("Ακύρωση", style: TextStyle(color: Colors.red)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                String otpCode = otpController.text.trim();
+                if (otpCode.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text("❌ Παρακαλώ εισάγετε τον κωδικό OTP!")),
+                  );
+                  return;
+                }
+
+                bool success = await verify2FA(email, otpCode);
+                if (success) {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Phone Verified Successfully!")),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Invalid OTP, try again!")),
-                  );
                 }
               },
-              child: Text("Verify"),
+              style: ElevatedButton.styleFrom(backgroundColor: MyColors().cyan),
+              child: Text("Επιβεβαίωση"),
             ),
           ],
         );
       },
     );
+  }
+
+  Future<bool> verify2FA(String email, String otpCode) async {
+    try {
+      Uri uri = Uri.parse(
+          "http://${Constants().hostName}/api/User/login/2fa/$otpCode");
+
+      http.Response response = await http.post(
+        uri,
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        },
+      );
+
+      if (response.statusCode == 200) {
+        Map<String, dynamic> responseData = json.decode(response.body);
+        String? accessToken = responseData['data']?['access_token'];
+
+        if (accessToken != null && accessToken.isNotEmpty) {
+          print("✅ 2FA Login successful. Access Token: $accessToken");
+
+          // Αποθήκευση του Token
+          globalAccessToken = accessToken;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("✅ 2FA Login Successful! Redirecting...")),
+          );
+
+          // Μετάβαση στην κεντρική οθόνη
+          Future.delayed(Duration(seconds: 2), () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => Home()),
+            );
+          });
+
+          return true;
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text("❌ 2FA Login failed: No access token received")),
+          );
+          return false;
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  "❌ 2FA Login failed! Server error: ${response.statusCode}")),
+        );
+        return false;
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text("❌ Error verifying 2FA. Check your connection.")),
+      );
+      return false;
+    }
   }
 }

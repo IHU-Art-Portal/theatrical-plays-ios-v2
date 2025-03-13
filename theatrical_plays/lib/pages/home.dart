@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
 import 'package:theatrical_plays/pages/home/LoadingHomeScreen.dart';
 import 'package:theatrical_plays/pages/home/login_signup.dart';
@@ -7,11 +6,13 @@ import 'package:theatrical_plays/pages/home/login_signup.dart';
 import 'package:theatrical_plays/pages/theaters/LoadingTheaters.dart';
 import 'package:theatrical_plays/using/AuthorizationStore.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
+import 'package:theatrical_plays/using/UserService.dart';
 
 import 'actors/LoadingActors.dart';
 import 'movies/LoadingMovies.dart';
 import 'user/UserProfileScreen.dart';
 import 'package:theatrical_plays/using/globals.dart';
+import 'package:theatrical_plays/pages/user/PurchaseCreditsScreen.dart';
 
 class Home extends StatefulWidget {
   static _HomeState? of(BuildContext context) =>
@@ -25,6 +26,7 @@ class _HomeState extends State<Home> {
   // Snake bottom nav bar options initialization
   SnakeShape snakeShape = SnakeShape.indicator;
   int _selectedItemPosition = 0;
+  double userCredits = 0.0;
 
   // Bottom nav bar screens
   final List<Widget> screens = [
@@ -42,13 +44,14 @@ class _HomeState extends State<Home> {
       backgroundColor: Colors.white,
       // AppBar options and colors
       appBar: AppBar(
+        backgroundColor: MyColors().black,
+        elevation: 0,
         title: Text(
-          'Theatrical analytics',
+          "Theatrical Analytics",
           style: TextStyle(color: MyColors().cyan),
         ),
-        backgroundColor: MyColors().black,
-        systemOverlayStyle: SystemUiOverlayStyle.light,
-        actions: <Widget>[
+        centerTitle: true,
+        actions: [
           Padding(
             padding: const EdgeInsets.only(right: 15.0),
             child: PopupMenuButton<String>(
@@ -61,35 +64,75 @@ class _HomeState extends State<Home> {
                   );
                 } else if (value == "logout") {
                   confirmLogout();
+                } else if (value == "credits") {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => PurchaseCreditsScreen()),
+                  );
                 }
               },
+              color: MyColors().black, // ✅ Μαύρο background στο μενού
               itemBuilder: (BuildContext context) => [
+                PopupMenuItem(
+                  value: "credits",
+                  child: Row(
+                    children: [
+                      Icon(Icons.euro, color: Colors.yellow, size: 20),
+                      SizedBox(width: 8),
+                      FutureBuilder<Map<String, dynamic>?>(
+                        future: UserService.fetchUserProfile(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return Text("Loading...",
+                                style: TextStyle(color: Colors.white));
+                          } else if (snapshot.hasError ||
+                              snapshot.data == null) {
+                            return Text("Error",
+                                style: TextStyle(color: Colors.red));
+                          } else {
+                            double credits = snapshot.data?['credits'] ?? 0.0;
+                            return Text(
+                              "Credits: ${credits.toStringAsFixed(2)} €",
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 16),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
                 PopupMenuItem(
                   value: "profile",
                   child: ListTile(
                     leading: Icon(Icons.person, color: Colors.blue),
-                    title: Text("Προφίλ"),
+                    title:
+                        Text("Προφίλ", style: TextStyle(color: Colors.white)),
                   ),
                 ),
                 PopupMenuItem(
                   value: "logout",
                   child: ListTile(
                     leading: Icon(Icons.exit_to_app, color: Colors.red),
-                    title: Text("Αποσύνδεση"),
+                    title: Text("Αποσύνδεση",
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ),
               ],
               child: CircleAvatar(
                 radius: 20,
-                backgroundColor: Colors.grey[800], // Placeholder background
+                backgroundColor: Colors.grey[800],
                 backgroundImage: NetworkImage(
-                  "https://www.gravatar.com/avatar/placeholder?d=mp", // Φόρτωσε εικόνα χρήστη (προσωρινή)
+                  "https://www.gravatar.com/avatar/placeholder?d=mp",
                 ),
               ),
             ),
           ),
         ],
       ),
+
       // Bottom navigation bar size, colors, and snake shape
       bottomNavigationBar: SnakeNavigationBar.color(
         height: 60,

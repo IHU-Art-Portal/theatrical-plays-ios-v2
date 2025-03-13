@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:theatrical_plays/using/AuthorizationStore.dart';
 import 'dart:convert';
 import 'dart:math';
+import 'package:theatrical_plays/using/Constants.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -34,6 +35,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: MyColors().black,
+      appBar: AppBar(
+        backgroundColor: MyColors().black,
+        elevation: 0,
+        title: Text("Home", style: TextStyle(color: MyColors().cyan)),
+      ),
       body: FutureBuilder<List<dynamic>>(
         future: futureData,
         builder: (context, snapshot) {
@@ -48,7 +54,6 @@ class _HomeScreenState extends State<HomeScreen> {
             List<Movie> movies = snapshot.data![1];
             List<Theater> theaters = snapshot.data![2];
 
-            // ✅ Επιλέγουμε 3 τυχαία αντικείμενα από κάθε λίστα
             List<Actor> randomActors = getRandomItems(actors, 3);
             List<Movie> randomMovies = getRandomItems(movies, 3);
             List<Theater> randomTheaters = getRandomItems(theaters, 3);
