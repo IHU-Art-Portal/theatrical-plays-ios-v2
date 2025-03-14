@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/UserService.dart';
-import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 import 'package:flutter/cupertino.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -34,8 +33,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // String phoneNumber = ""; // ✅ Κρατάει τον αριθμό τηλεφώνου του χρήστη
   bool phoneVerified = false; // ✅ Δείχνει αν το τηλέφωνο είναι verified
   double balance = 0.0; // ✅ Διατηρούμε το υπόλοιπο του χρήστη
-  PhoneNumber?
-      phoneNumber; // Αποθηκεύει τον αριθμό τηλεφώνου με τον κωδικό χώρας
+  String phoneNumber = "";
   final TextEditingController phoneController = TextEditingController();
   @override
   void initState() {
@@ -60,10 +58,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         balance = profileData["credits"] ?? 0.0;
 
         // ✅ Ανάθεση σωστής τιμής στο phoneNumber με ISO code
-        phoneNumber = PhoneNumber(
-          phoneNumber: profileData["phoneNumber"] ?? "",
-          isoCode: "GR", // Προκαθορισμένη χώρα
-        );
+        phoneNumber = profileData["phoneNumber"] ?? "";
       });
     }
   }
@@ -361,52 +356,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(phoneController.text.isEmpty
-              ? "Προσθήκη τηλεφώνου"
-              : "Επεξεργασία τηλεφώνου"),
-          content: InternationalPhoneNumberInput(
-            onInputChanged: (PhoneNumber number) {
-              setState(() {
-                phoneNumber =
-                    number; // ✅ Ενημέρωση του phoneNumber αντικειμένου
-              });
-            },
-            selectorConfig: SelectorConfig(
-              selectorType: PhoneInputSelectorType
-                  .DROPDOWN, // ✅ Dropdown για επιλογή χώρας
-            ),
-            ignoreBlank: false,
-            autoValidateMode: AutovalidateMode.disabled,
-            initialValue: phoneNumber, // ✅ Ανάθεση του phoneNumber
-            textFieldController: phoneController,
-            formatInput: true,
-            inputDecoration: InputDecoration(
+          title: Text(
+            phoneController.text.isEmpty
+                ? "Προσθήκη τηλεφώνου"
+                : "Επεξεργασία τηλεφώνου",
+            style: TextStyle(color: Colors.black), // ✅ Κείμενο τίτλου σε μαύρο
+          ),
+          content: TextField(
+            controller: phoneController,
+            keyboardType: TextInputType.phone,
+            style: TextStyle(
+                color: Colors.black), // ✅ Το κείμενο του input είναι μαύρο
+            decoration: InputDecoration(
               labelText: "Αριθμός τηλεφώνου",
-              labelStyle: TextStyle(color: Colors.white),
+              labelStyle: TextStyle(color: Colors.black), // ✅ Label σε μαύρο
               enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: MyColors().cyan)),
+                borderSide: BorderSide(color: MyColors().cyan),
+              ),
               focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: MyColors().cyan)),
+                borderSide: BorderSide(color: MyColors().cyan),
+              ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text("Ακύρωση"),
+              child: Text("Ακύρωση",
+                  style: TextStyle(
+                      color: Colors.black)), // ✅ Μαύρο κείμενο στο κουμπί
             ),
             ElevatedButton(
               onPressed: () async {
-                String formattedPhone =
-                    phoneNumber?.phoneNumber ?? phoneController.text;
+                String formattedPhone = phoneController.text.trim();
 
-                if (formattedPhone.isNotEmpty &&
-                    formattedPhone != phoneController.text) {
+                if (formattedPhone.isNotEmpty) {
                   bool success =
                       await UserService.registerPhoneNumber(formattedPhone);
                   if (success) {
                     setState(() {
-                      phoneController.text =
-                          formattedPhone; // ✅ Ενημέρωση UI με τον νέο αριθμό
+                      phoneNumber = formattedPhone;
+                      phoneController.text = formattedPhone; // ✅ UI ενημέρωση
                     });
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -426,10 +415,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     );
                   }
                 } else {
-                  Navigator.pop(context); // ✅ Αν δεν αλλάχθηκε, απλά κλείνουμε
+                  Navigator.pop(context);
                 }
               },
-              child: Text("Αποθήκευση"),
+              child: Text("Αποθήκευση", style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -497,7 +486,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (success) {
       setState(() {
         phoneController.text = ""; // ✅ Καθαρίζουμε το UI
-        phoneNumber = null; // ✅ Μηδενίζουμε το αντικείμενο PhoneNumber
+        phoneNumber = ""; // ✅ Μηδενίζουμε το αντικείμενο PhoneNumber
         phoneVerified = false; // ✅ Μηδενίζουμε το phoneVerified
       });
 
