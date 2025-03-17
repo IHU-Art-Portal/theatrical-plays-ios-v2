@@ -39,6 +39,8 @@ dependencies:
   syncfusion_flutter_core: ^26.2.14
   flutter_vector_icons: ^2.0.0
   shared_preferences: ^2.5.2
+  image_picker: ^0.8.5+3
+
 
 flutter_icons:
   android: true

@@ -4,6 +4,7 @@ import 'package:theatrical_plays/using/Constants.dart';
 import 'package:theatrical_plays/using/globals.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'dart:io';
 
 class UserService {
   static Future<Map<String, dynamic>?> fetchUserProfile() async {
@@ -30,6 +31,7 @@ class UserService {
         print("✅ User Info Loaded: ${jsonData['data']}");
 
         return {
+          "userId": jsonData['data']["userId"] ?? "",
           "facebookUrl": jsonData['data']["facebook"] ?? "",
           "instagramUrl": jsonData['data']["instagram"] ?? "",
           "youtubeUrl": jsonData['data']["youtube"] ?? "",
@@ -38,8 +40,9 @@ class UserService {
           "role": jsonData['data']["role"] ?? "Χωρίς ρόλο",
           "credits": jsonData['data']["balance"] ?? 0.0,
           "phoneNumber": jsonData['data']["phoneNumber"] ?? "",
-          "phoneVerified":
-              jsonData['data']["phoneVerified"] ?? false, // ✅ Προσθήκη
+          "phoneVerified": jsonData['data']["phoneVerified"] ?? false,
+          "userImages": jsonData['data']["images"] ??
+              [], // Επιστρέφουμε τις φωτογραφίες του χρήστη
         };
       } else {
         print("❌ Σφάλμα στο API: ${response.statusCode}");
@@ -315,5 +318,85 @@ class UserService {
 
   static String createCheckoutSession(int credits, double price) {
     return "http://${Constants().hostName}/api/Stripe/create-checkout-session?creditAmount=$credits&price=$price";
+  }
+
+  static Future<String> uploadUserPhoto(File imageFile) async {
+    try {
+      if (globalAccessToken == null) {
+        print("❌ Δεν υπάρχει αποθηκευμένο token.");
+        return ""; // Επιστρέφουμε κενό string αντί για false
+      }
+
+      // Δημιουργούμε το HTTP request για το ανέβασμα της φωτογραφίας
+      var request = http.MultipartRequest(
+          'POST', Uri.parse('http://localhost:8080/api/User/UploadPhoto'));
+
+      // Προσθήκη της φωτογραφίας στο request
+      request.files
+          .add(await http.MultipartFile.fromPath('file', imageFile.path));
+
+      // Προσθήκη του Authorization header
+      request.headers['Authorization'] =
+          "Bearer $globalAccessToken"; // Χρησιμοποιούμε το globalAccessToken
+
+      // Προσθήκη του Content-Type header
+      request.headers['Content-Type'] =
+          'multipart/form-data'; // Σημαντικό για το ανέβασμα αρχείων
+
+      // Αποστολή του request
+      var response = await request.send();
+
+      // Έλεγχος για την επιτυχία της αίτησης
+      if (response.statusCode == 200) {
+        var jsonData = jsonDecode(await response.stream.bytesToString());
+        print("✅ Η εικόνα ανέβηκε επιτυχώς!");
+
+        // Επιστρέφουμε το URL της εικόνας από την απάντηση του API
+        return jsonData["imageUrl"] ?? "";
+      } else {
+        print("❌ Αποτυχία ανέβασματος εικόνας: ${response.statusCode}");
+        return ""; // Επιστρέφουμε κενό string σε περίπτωση αποτυχίας
+      }
+    } catch (e) {
+      print("❌ Σφάλμα στο ανέβασμα εικόνας: $e");
+      return ""; // Επιστρέφουμε κενό string σε περίπτωση σφάλματος
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> fetchUserImages(int userId) async {
+    try {
+      Uri uri = Uri.parse(
+          "http://${Constants().hostName}/api/User/Images?userId=$userId");
+
+      http.Response response = await http.get(
+        uri,
+        headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $globalAccessToken",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Parse the response
+        List<dynamic> jsonData = jsonDecode(response.body);
+
+        // Map the data to a list of images
+        List<Map<String, dynamic>> userImages = jsonData.map((image) {
+          return {
+            "url": image["url"] ?? "",
+            "label": image["label"] ?? "",
+            "isProfile": image["isProfile"] ?? false,
+          };
+        }).toList();
+
+        return userImages;
+      } else {
+        print("❌ Failed to load user images: ${response.statusCode}");
+        return [];
+      }
+    } catch (e) {
+      print("❌ Error fetching user images: $e");
+      return [];
+    }
   }
 }

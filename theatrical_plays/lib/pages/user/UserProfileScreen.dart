@@ -3,6 +3,8 @@ import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/UserService.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:theatrical_plays/pages/user/EditProfileScreen.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class UserProfileScreen extends StatefulWidget {
   @override
@@ -18,7 +20,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String facebookUrl = "";
   String instagramUrl = "";
   String youtubeUrl = "";
-  bool is2FAEnabled = false; // ✅ Δημιουργούμε τη μεταβλητή
+  bool is2FAEnabled = false;
+  File? _image;
+  String _uploadedImageUrl = "";
+  // int? userId;
+  List<Map<String, dynamic>> userImages =
+      []; // Λίστα για τις φωτογραφίες του χρήστη
+
+  final picker = ImagePicker();
 
   @override
   void initState() {
@@ -39,19 +48,33 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         instagramUrl = data["instagramUrl"] ?? "";
         youtubeUrl = data["youtubeUrl"] ?? "";
         is2FAEnabled = data["twoFactorEnabled"] ?? false;
-
-        // ✅ Νέα πεδία
         userEmail = data["email"] ?? "Δεν υπάρχει email";
         userRole = data["role"] ?? "Χωρίς ρόλο";
         userCredits = data["credits"] ?? 0.0;
+
+        // Έλεγχος και σωστή αποθήκευση των φωτογραφιών του χρήστη
+        if (data["userImages"] != null && data["userImages"].isNotEmpty) {
+          userImages = List<Map<String, dynamic>>.from(
+            data["userImages"].map((image) {
+              return {
+                "url": image["imageLocation"] ?? "",
+                "label": image["label"] ?? "",
+                "isProfile":
+                    image["id"] == data["profilePhoto"]?["id"] ?? false,
+              };
+            }),
+          );
+        } else {
+          userImages = []; // Αν δεν υπάρχουν εικόνες, η λίστα παραμένει άδεια
+        }
       });
 
       print("✅ User Data updated successfully: $userData");
+      print("User Images: $userImages");
     } else {
       setState(() {
         isLoading = false;
       });
-
       print("❌ Failed to load user data!");
     }
   }
@@ -68,10 +91,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         children: [
           CircleAvatar(
             radius: 50,
-            backgroundImage: NetworkImage(
-              userData?["profilePictureUrl"] ??
-                  "https://www.gravatar.com/avatar/placeholder?d=mp",
-            ),
+            backgroundImage: _image == null
+                ? NetworkImage(userData?["profilePictureUrl"] ??
+                    "https://www.gravatar.com/avatar/placeholder?d=mp")
+                : FileImage(_image!) as ImageProvider,
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed:
+                _pickImage, // Καλούμε την μέθοδο για να επιλέξουμε φωτογραφία
+            child: Text('Ανέβασε Φωτογραφία'),
           ),
           SizedBox(height: 20),
           Text(
@@ -84,27 +113,60 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             style: TextStyle(fontSize: 18, color: colors.secondaryText),
           ),
           SizedBox(height: 10),
-
-          /// ✅ Προσθήκη των Credits του χρήστη
           Text(
-            "Credits: ${userCredits.toStringAsFixed(2)}", // ✅ Χρήση της μεταβλητής που φορτώσαμε από το API
+            "Credits: ${userCredits.toStringAsFixed(2)}", // Χρήση της μεταβλητής που φορτώσαμε από το API
             style: TextStyle(
                 fontSize: 18,
                 color: colors.accent,
                 fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 20),
-
-          // ✅ Social Media Icons με έλεγχο αν υπάρχει URL
-          buildSocialMediaRow(),
-
-          SizedBox(height: 20),
-
           Divider(color: colors.secondaryText),
-
+          SizedBox(height: 20),
+          buildSocialMediaRow(),
+          SizedBox(height: 20),
+          // Ενότητα για τις φωτογραφίες του χρήστη
+          buildUserImagesSection(colors),
           buildProfileActions(),
         ],
       ),
+    );
+  }
+
+  Widget buildUserImagesSection(MyColors colors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Φωτογραφίες Χρήστη",
+          style: TextStyle(fontSize: 18, color: colors.primaryText),
+        ),
+        SizedBox(height: 10),
+        if (userImages.isNotEmpty)
+          for (var image in userImages)
+            Column(
+              children: [
+                image['isProfile']
+                    ? GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _image = File(image['url']);
+                          });
+                        },
+                        child: CircleAvatar(
+                          radius: 50,
+                          backgroundImage: NetworkImage(image['url']),
+                        ),
+                      )
+                    : Image.network(image['url']),
+                SizedBox(height: 5),
+                Text(image['label']),
+                SizedBox(height: 20),
+              ],
+            )
+        else
+          Center(child: Text("Δεν υπάρχουν φωτογραφίες")),
+      ],
     );
   }
 
@@ -237,7 +299,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ],
                   ),
                 )
-              : buildProfileScreen(),
+              : SingleChildScrollView(
+                  // Προσθήκη SingleChildScrollView
+                  child: buildProfileScreen(),
+                ),
     );
   }
 
@@ -311,6 +376,57 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         backgroundColor: Colors.redAccent,
         duration: Duration(seconds: 2),
       ),
+    );
+  }
+
+  // Μέθοδος για την επιλογή εικόνας
+  Future<void> _pickImage() async {
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _image = File(pickedFile.path);
+      });
+
+      // Ανέβασε την εικόνα
+      String uploadedUrl = await UserService.uploadUserPhoto(_image!);
+
+      if (uploadedUrl.isNotEmpty) {
+        setState(() {
+          _uploadedImageUrl =
+              uploadedUrl; // Αποθηκεύουμε το URL της εικόνας που ανέβηκε
+        });
+        print("✅ Η εικόνα ανέβηκε επιτυχώς στο $uploadedUrl");
+      } else {
+        print("❌ Σφάλμα στο ανέβασμα εικόνας");
+      }
+    } else {
+      print('Δεν επιλέχθηκε καμία εικόνα');
+    }
+  }
+
+  Widget buildPhotoGallerySection(MyColors colors) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Φωτογραφίες Προφίλ",
+          style: TextStyle(fontSize: 18, color: colors.primaryText),
+        ),
+        SizedBox(height: 10),
+        // Προεπισκόπηση φωτογραφιών
+        _image == null
+            ? Center(child: Text("Δεν έχουν προστεθεί φωτογραφίες"))
+            : Image.file(_image!), // Εμφανίζει την τοπική εικόνα που επιλέχθηκε
+
+        SizedBox(height: 10),
+        // Κουμπί για ανέβασμα φωτογραφίας
+        ElevatedButton(
+          onPressed: _pickImage, // Επιλογή εικόνας
+          child: Text("Ανέβασμα Νέας Φωτογραφίας"),
+          style: ElevatedButton.styleFrom(backgroundColor: colors.accent),
+        ),
+      ],
     );
   }
 }

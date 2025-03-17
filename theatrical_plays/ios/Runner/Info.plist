@@ -53,5 +53,11 @@
 	<true/>
 	<key>io.flutter.embedded_views_preview</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Η εφαρμογή χρειάζεται πρόσβαση στη βιβλιοθήκη φωτογραφιών.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Η εφαρμογή χρειάζεται πρόσβαση στην κάμερα για τη λήψη φωτογραφιών.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Η εφαρμογή χρειάζεται πρόσβαση στο μικρόφωνο για ηχογραφήσεις.</string>
 </dict>
 </plist>
