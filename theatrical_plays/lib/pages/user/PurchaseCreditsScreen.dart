@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
+import 'package:theatrical_plays/using/WebViewScreen.dart';
+import 'package:theatrical_plays/using/UserService.dart';
 
 class PurchaseCreditsScreen extends StatelessWidget {
   @override
@@ -61,14 +63,28 @@ class PurchaseCreditsScreen extends StatelessWidget {
             style: TextStyle(color: Colors.white, fontSize: 18)),
         trailing: Text("$price€",
             style: TextStyle(color: Colors.greenAccent, fontSize: 18)),
-        onTap: () {
-          // TODO: Προσθήκη πληρωμής
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("Δεν έχει υλοποιηθεί η αγορά!"),
-              backgroundColor: Colors.red,
-            ),
-          );
+        onTap: () async {
+          print("🛒 Αγορά $credits credits για $price€");
+
+          String? checkoutUrl =
+              await UserService.createCheckoutSession(credits, price);
+
+          if (checkoutUrl != null) {
+            print("✅ Μετάβαση στο Stripe Checkout...");
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => WebViewScreen(url: checkoutUrl),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("❌ Αποτυχία δημιουργίας πληρωμής!"),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         },
       ),
     );

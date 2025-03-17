@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:theatrical_plays/using/Constants.dart';
 import 'package:theatrical_plays/using/globals.dart';
+import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 class UserService {
   static Future<Map<String, dynamic>?> fetchUserProfile() async {
@@ -309,5 +311,9 @@ class UserService {
       print("❌ Σφάλμα κατά την απενεργοποίηση του 2FA: $e");
       return false;
     }
+  }
+
+  static String createCheckoutSession(int credits, double price) {
+    return "http://${Constants().hostName}/api/Stripe/create-checkout-session?creditAmount=$credits&price=$price";
   }
 }
