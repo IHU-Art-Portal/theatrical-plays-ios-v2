@@ -10,113 +10,6 @@ import 'package:theatrical_plays/using/Constants.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/SmallLoading.dart';
 
-// class BodyProfileWidget extends StatefulWidget {
-//   final int actorId;
-//   BodyProfileWidget(this.actorId);
-//
-//   @override
-//   _BodyProfileWidgetState createState() => _BodyProfileWidgetState(actorId);
-// }
-//
-// class _BodyProfileWidgetState extends State<BodyProfileWidget> {
-//   int actorId;
-//   List<Production> productions = [];
-//   List<Movie> movies = [];
-//   _BodyProfileWidgetState(this.actorId);
-//
-//   // method for load the relative productions by actorId
-//   // ignore: missing_return
-//   Future<List<Production>> loadProductions() async {
-//     try {
-//       Uri uri = Uri.parse(
-//           "http://${Constants().hostName}:8080/api/people/$actorId/productions");
-//       Response data = await get(uri, headers: {
-//         "Accept": "application/json",
-//         "authorization":
-//             "${await AuthorizationStore.getStoreValue("authorization")}"
-//       });
-//       var jsonData = jsonDecode(data.body);
-//
-//       for (var oldProduction in jsonData['data']['content']) {
-//         Production production = new Production(
-//             oldProduction['role'],
-//             oldProduction['productionId'],
-//             oldProduction['title'],
-//             oldProduction['ticketUrl'],
-//             oldProduction['producer'],
-//             oldProduction['mediaURL'],
-//             oldProduction['duration'],
-//             oldProduction['description']);
-//
-//         Movie movie = new Movie(
-//             oldProduction['productionId'],
-//             oldProduction['title'],
-//             oldProduction['ticketUrl'],
-//             oldProduction['producer'],
-//             oldProduction['mediaURL'],
-//             oldProduction['duration'],
-//             oldProduction['description'],
-//             false);
-//
-//         productions.add(production);
-//         movies.add(movie);
-//       }
-//       return productions;
-//     } on Exception {
-//       print('error data');
-//     }
-//   }
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return FutureBuilder(
-//         // call method for load the relative production with the actor id and show at the body of page
-//         future: loadProductions(),
-//         builder:
-//             (BuildContext context, AsyncSnapshot<List<Production>> snapshot) {
-//           if (!snapshot.hasData) {
-//             return SmallLoading();
-//           } else if (snapshot.hasError) {
-//             return Center(
-//               child: Text("error loading",
-//                   style: TextStyle(color: MyColors().cyan, fontSize: 22)),
-//             );
-//           } else {
-//             return Center(
-//                 child: ListView.builder(
-//                     physics: NeverScrollableScrollPhysics(),
-//                     shrinkWrap: true,
-//                     itemCount: productions.length,
-//                     itemBuilder: (context, index) {
-//                       return ListTile(
-//                         onTap: () {
-//                           Navigator.push(
-//                               context,
-//                               MaterialPageRoute(
-//                                   builder: (context) =>
-//                                       MovieInfo(movies[index].id)));
-//                         },
-//                         leading: Padding(
-//                           padding:
-//                               const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
-//                           child: CircleAvatar(
-//                             radius: 30.0,
-//                             backgroundImage:
-//                                 NetworkImage(productions[index].mediaUrl),
-//                           ),
-//                         ),
-//                         title: Text(
-//                           productions[index].title +
-//                               " - " +
-//                               productions[index].role,
-//                           style: TextStyle(color: MyColors().cyan),
-//                         ),
-//                       );
-//                     }));
-//           }
-//         });
-//   }
-// }
 class BodyProfileWidget extends StatefulWidget {
   final int actorId;
   BodyProfileWidget(this.actorId);
@@ -140,7 +33,7 @@ class _BodyProfileWidgetState extends State<BodyProfileWidget> {
       Response data = await get(uri, headers: {
         "Accept": "application/json",
         "authorization":
-        "${await AuthorizationStore.getStoreValue("authorization")}"
+            "${await AuthorizationStore.getStoreValue("authorization")}"
       });
 
       var jsonData = jsonDecode(data.body);
@@ -168,12 +61,16 @@ class _BodyProfileWidgetState extends State<BodyProfileWidget> {
         //     false);
         Movie movie = Movie(
           id: oldProduction['productionId'] ?? 0, // Provide fallback for id
-          title: oldProduction['title'] ?? 'Unknown Title', // Provide fallback for title
-          ticketUrl: oldProduction['ticketUrl'], // Nullable, no need for fallback
-          producer: oldProduction['producer'] ?? 'Unknown Producer', // Provide fallback for producer
+          title: oldProduction['title'] ??
+              'Unknown Title', // Provide fallback for title
+          ticketUrl:
+              oldProduction['ticketUrl'], // Nullable, no need for fallback
+          producer: oldProduction['producer'] ??
+              'Unknown Producer', // Provide fallback for producer
           mediaUrl: oldProduction['mediaURL'], // Nullable, no need for fallback
           duration: oldProduction['duration'], // Nullable, no need for fallback
-          description: oldProduction['description'] ?? 'No description available', // Provide fallback for description
+          description: oldProduction['description'] ??
+              'No description available', // Provide fallback for description
           isSelected: false, // Default value
         );
 
@@ -189,8 +86,12 @@ class _BodyProfileWidgetState extends State<BodyProfileWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
     return FutureBuilder<List<Production>>(
-      // Call method to load the related productions with the actor id and show them in the body of the page
+        // Call method to load the related productions with the actor id and show them in the body of the page
         future: loadProductions(),
         builder:
             (BuildContext context, AsyncSnapshot<List<Production>> snapshot) {
@@ -199,12 +100,12 @@ class _BodyProfileWidgetState extends State<BodyProfileWidget> {
           } else if (snapshot.hasError) {
             return Center(
               child: Text("Error loading",
-                  style: TextStyle(color: MyColors().cyan, fontSize: 22)),
+                  style: TextStyle(color: colors.accent, fontSize: 22)),
             );
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(
               child: Text("No productions available",
-                  style: TextStyle(color: MyColors().cyan, fontSize: 22)),
+                  style: TextStyle(color: colors.accent, fontSize: 22)),
             );
           } else {
             return Center(
@@ -223,16 +124,16 @@ class _BodyProfileWidgetState extends State<BodyProfileWidget> {
                         },
                         leading: Padding(
                           padding:
-                          const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
+                              const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
                           child: CircleAvatar(
                             radius: 30.0,
-                            backgroundImage: NetworkImage(
-                                productions[index].mediaUrl ),
+                            backgroundImage:
+                                NetworkImage(productions[index].mediaUrl),
                           ),
                         ),
                         title: Text(
                           "${productions[index].title} - ${productions[index].role}",
-                          style: TextStyle(color: MyColors().cyan),
+                          style: TextStyle(color: colors.accent),
                         ),
                       );
                     }));

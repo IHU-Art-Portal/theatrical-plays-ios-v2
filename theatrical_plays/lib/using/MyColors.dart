@@ -1,15 +1,26 @@
 import 'package:flutter/material.dart';
 
 class MyColors {
-  Color black = Color.fromRGBO(29, 29, 29, 1);
-  Color cyan = Color.fromRGBO(113, 255, 250, 1);
-  Color gray = Color.fromRGBO(92, 92, 92, 1);
-  Color white = Colors.white70;
-  Color iconColor = Color(0xFFB6C7D1);
-  Color activeColor = Color(0xFF09126C);
-  Color textColor1 = Color(0XFFA7BCC7);
-  Color textColor2 = Color(0XFF9BB3C0);
-  Color facebookColor = Color(0xFF3B5999);
-  Color googleColor = Color(0xFFDE4B39);
-  Color backgroundColor = Color(0xFFECF3F9);
+  static final light = MyColors._light();
+  static final dark = MyColors._dark();
+
+  final Color background;
+  final Color primaryText;
+  final Color secondaryText;
+  final Color accent;
+  final Color iconColor;
+
+  MyColors._light()
+      : background = Color(0xFFFAF3E0), // Light beige (θεατρική κομψότητα)
+        primaryText = Color(0xFF2C2C2C), // Charcoal black (ευανάγνωστο)
+        secondaryText = Color(0xFF6B6B6B), // Soft gray (υποστηρικτικό κείμενο)
+        accent = Color(0xFFD7263D), // Bold μπορντό (θεατρικό στοιχείο)
+        iconColor = Color(0xFF444444); // Σκούρο γκρι (minimal icons)
+
+  MyColors._dark()
+      : background = Color(0xFF121212), // Dark charcoal (κομψό μαύρο)
+        primaryText = Color(0xFFEFEFEF), // Απαλό λευκό (για readability)
+        secondaryText = Color(0xFFB3B3B3), // Γκρι για δευτερεύον κείμενο
+        accent = Color(0xFFFFC107), // Χρυσό (σαν φώτα σκηνής)
+        iconColor = Color(0xFFE0E0E0); // Ανοιχτό γκρι (καθαρά εικονίδια)
 }

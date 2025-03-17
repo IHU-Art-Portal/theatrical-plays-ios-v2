@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/UserService.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:theatrical_plays/main.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final String facebookUrl;
@@ -30,15 +32,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool isEditingYouTube = false;
   String profilePictureUrl = "";
   bool is2FAEnabled = false;
+  bool isDarkMode = false;
   // String phoneNumber = ""; // ✅ Κρατάει τον αριθμό τηλεφώνου του χρήστη
   bool phoneVerified = false; // ✅ Δείχνει αν το τηλέφωνο είναι verified
   double balance = 0.0; // ✅ Διατηρούμε το υπόλοιπο του χρήστη
   String phoneNumber = "";
   final TextEditingController phoneController = TextEditingController();
+
+  Future<void> loadThemePreference() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isDarkMode =
+          prefs.getBool("themeMode") ?? false; // 🔹 Default: Light Mode
+    });
+  }
+
+  Future<void> toggleTheme(bool value) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isDarkMode = value;
+    });
+    await prefs.setBool("themeMode", value); // ✅ Αποθήκευση επιλογής
+  }
+
   @override
   void initState() {
     super.initState();
     is2FAEnabled = widget.is2FAEnabled; // ✅ Φόρτωση αρχικής τιμής
+    loadThemePreference(); // 🔹 Φόρτωση προτίμησης theme κατά την εκκίνηση
     fetchUserProfile();
   }
 
@@ -109,17 +130,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors =
+        theme.brightness == Brightness.dark ? MyColors.dark : MyColors.light;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text("Επεξεργασία Προφίλ",
-            style: TextStyle(color: MyColors().cyan)),
-        backgroundColor: MyColors().black,
+        title:
+            Text("Επεξεργασία Προφίλ", style: TextStyle(color: colors.accent)),
+        backgroundColor: colors.background,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: MyColors().cyan),
+          icon: Icon(Icons.arrow_back, color: colors.accent),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      backgroundColor: MyColors().black,
+      backgroundColor: colors.background,
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(
@@ -141,95 +166,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: saveProfile,
-              style: ElevatedButton.styleFrom(backgroundColor: MyColors().cyan),
+              style: ElevatedButton.styleFrom(backgroundColor: colors.accent),
               child: Text("Αποθήκευση", style: TextStyle(color: Colors.white)),
             ),
             SizedBox(height: 20),
-            Divider(color: Colors.white54), // 🔹 Διαχωριστική γραμμή
+            Divider(color: Colors.white54),
 
             SizedBox(height: 10),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(
-                      phoneController.text.isNotEmpty
-                          ? Icons.check_circle
-                          : Icons.warning,
-                      color: phoneController.text.isNotEmpty
-                          ? Colors.green
-                          : Colors.orange,
-                    ),
-                    SizedBox(width: 10),
-                    Text(
-                      phoneController.text.isNotEmpty
-                          ? "Τηλέφωνο: ${phoneController.text}"
-                          : "Δεν έχει προστεθεί τηλέφωνο",
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.edit, color: MyColors().cyan),
-                      onPressed: promptForPhoneNumber, // Επεξεργασία τηλεφώνου
-                    ),
-                    if (phoneController.text.isNotEmpty) // Αν υπάρχει τηλέφωνο
-                      IconButton(
-                        icon: Icon(Icons.delete, color: Colors.red),
-                        onPressed:
-                            handleDeletePhoneNumber, // Διαγραφή τηλεφώνου
-                      ),
-                  ],
-                ),
-              ],
-            ),
-            if (phoneController.text.isNotEmpty && !phoneVerified) ...[
-              SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.warning, color: Colors.orange),
-                      SizedBox(width: 10),
-                      Text(
-                        "Δεν έχει επιβεβαιωθεί",
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                    ],
-                  ),
-                  ElevatedButton(
-                    onPressed: promptForPhoneVerification,
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange),
-                    child: Text("Επιβεβαίωση",
-                        style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-            ],
-
-            SizedBox(
-                height: 10), // ✅ Πρόσθεσε απόσταση πριν το Two-Step Security
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
                 Text(
                   "Two-Step Security",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
+                  style: TextStyle(color: colors.primaryText, fontSize: 16),
                 ),
                 CupertinoSwitch(
-                  value: is2FAEnabled, // ✅ Το UI ενημερώνεται σωστά
+                  value: is2FAEnabled,
                   activeColor: Colors.green,
                   onChanged: (bool value) {
                     setState(() {
-                      is2FAEnabled =
-                          value; // 🔹 Αλλαγή τιμής στο UI πριν καλέσουμε το API
+                      is2FAEnabled = value;
                     });
 
                     if (value) {
@@ -240,9 +197,45 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   },
                 ),
               ],
-            ), // ✅ Κλείνουμε το Row σωστά
+            ),
+
+            SizedBox(height: 10),
+
+            // ✅ Διορθωμένο Dark Mode Switch
+            FutureBuilder<bool>(
+              future: getThemePreference(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return CircularProgressIndicator();
+                }
+
+                bool isDarkMode = snapshot.data ?? false;
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Dark Mode",
+                      style: TextStyle(color: colors.primaryText, fontSize: 16),
+                    ),
+                    CupertinoSwitch(
+                      value: isDarkMode,
+                      activeColor: Colors.green,
+                      onChanged: (bool value) async {
+                        SharedPreferences prefs =
+                            await SharedPreferences.getInstance();
+                        await prefs.setBool("themeMode", value);
+
+                        // ✅ Ανανέωση της εφαρμογής
+                        MyApp.of(context)?.setThemeMode(value);
+                      },
+                    ),
+                  ],
+                );
+              },
+            ),
           ],
-        ), // ✅ Κλείνουμε το Column σωστά
+        ),
       ),
     );
   }
@@ -252,6 +245,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       bool isEditing, VoidCallback onEditToggle) {
     String existingUrl =
         controller.text.trim(); // ✅ Διαβάζουμε το URL από το controller
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
 
     return Row(
       children: [
@@ -259,15 +255,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: isEditing
               ? TextField(
                   controller: controller,
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(color: colors.primaryText),
                   decoration: InputDecoration(
                     labelText: "$label URL",
-                    labelStyle: TextStyle(color: MyColors().cyan),
+                    labelStyle: TextStyle(color: colors.accent),
                     enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: MyColors().cyan),
+                      borderSide: BorderSide(color: colors.accent),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: MyColors().cyan),
+                      borderSide: BorderSide(color: colors.accent),
                     ),
                   ),
                 )
@@ -285,11 +281,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       existingUrl.isNotEmpty
                           ? "$label συνδεδεμένο"
                           : "Δεν έχει προστεθεί $label",
-                      style: TextStyle(color: Colors.white, fontSize: 16),
+                      style: TextStyle(color: colors.primaryText, fontSize: 16),
                     ),
                     SizedBox(width: 10),
                     IconButton(
-                      icon: Icon(Icons.edit, color: MyColors().cyan),
+                      icon: Icon(Icons.edit, color: colors.accent),
                       onPressed: onEditToggle,
                     ),
                     if (existingUrl
@@ -352,6 +348,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void promptForPhoneNumber() {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
     showDialog(
       context: context,
       builder: (context) {
@@ -360,7 +360,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             phoneController.text.isEmpty
                 ? "Προσθήκη τηλεφώνου"
                 : "Επεξεργασία τηλεφώνου",
-            style: TextStyle(color: Colors.black), // ✅ Κείμενο τίτλου σε μαύρο
+            style: TextStyle(
+                color: colors.primaryText), // ✅ Κείμενο τίτλου σε μαύρο
           ),
           content: TextField(
             controller: phoneController,
@@ -369,12 +370,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 color: Colors.black), // ✅ Το κείμενο του input είναι μαύρο
             decoration: InputDecoration(
               labelText: "Αριθμός τηλεφώνου",
-              labelStyle: TextStyle(color: Colors.black), // ✅ Label σε μαύρο
+              labelStyle:
+                  TextStyle(color: colors.primaryText), // ✅ Label σε μαύρο
               enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: MyColors().cyan),
+                borderSide: BorderSide(color: colors.accent),
               ),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: MyColors().cyan),
+                borderSide: BorderSide(color: colors.accent),
               ),
             ),
           ),
@@ -383,7 +385,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               onPressed: () => Navigator.pop(context),
               child: Text("Ακύρωση",
                   style: TextStyle(
-                      color: Colors.black)), // ✅ Μαύρο κείμενο στο κουμπί
+                      color: colors.primaryText)), // ✅ Μαύρο κείμενο στο κουμπί
             ),
             ElevatedButton(
               onPressed: () async {
@@ -418,7 +420,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   Navigator.pop(context);
                 }
               },
-              child: Text("Αποθήκευση", style: TextStyle(color: Colors.white)),
+              child: Text("Αποθήκευση",
+                  style: TextStyle(color: colors.primaryText)),
             ),
           ],
         );

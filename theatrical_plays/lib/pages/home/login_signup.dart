@@ -17,25 +17,33 @@ int? selectedRole;
 
 class _LoginSignupScreenState extends State<LoginSignupScreen> {
   bool isSignupScreen = true;
-  bool isMale = true;
   bool isRememberMe = false;
 
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
-  TextEditingController phoneController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
     return Scaffold(
+      backgroundColor: colors.background,
       body: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Colors.blue.shade900,
-              Colors.red.shade700
-            ], // Μπλε -> Κόκκινο
+            colors: isDarkMode
+                ? [
+                    Colors.black87,
+                    Colors.black54
+                  ] // Σκοτεινό Gradient για Dark Mode
+                : [
+                    Colors.blue.shade900,
+                    Colors.red.shade700
+                  ], // Φωτεινό Gradient για Light Mode
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -54,7 +62,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                       style: TextStyle(
                         fontSize: 25,
                         letterSpacing: 2,
-                        color: Colors.yellow[700],
+                        color: colors.accent,
                       ),
                       children: [
                         TextSpan(
@@ -62,7 +70,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                           style: TextStyle(
                             fontSize: 25,
                             fontWeight: FontWeight.bold,
-                            color: Colors.yellow[700],
+                            color: colors.accent,
                           ),
                         )
                       ],
@@ -76,7 +84,8 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                     isSignupScreen
                         ? "Signup to Continue"
                         : "Signin to Continue",
-                    style: TextStyle(letterSpacing: 1, color: Colors.white),
+                    style: TextStyle(
+                        letterSpacing: 1, color: colors.secondaryText),
                   ),
                 ),
               ],
@@ -84,7 +93,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
 
             // Κεντρικό Box για Login/Signup
             Positioned(
-              top: isSignupScreen ? 200 : 200,
+              top: 200,
               left: 20,
               right: 20,
               child: AnimatedContainer(
@@ -93,13 +102,14 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                 height: isSignupScreen ? 275 : 250,
                 padding: EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: colors.background,
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: [
                     BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 15,
-                        spreadRadius: 5),
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 15,
+                      spreadRadius: 5,
+                    ),
                   ],
                 ),
                 child: SingleChildScrollView(
@@ -119,18 +129,19 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                                 Text(
                                   "LOGIN",
                                   style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: !isSignupScreen
-                                          ? MyColors().activeColor
-                                          : MyColors().textColor1),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: !isSignupScreen
+                                        ? colors.accent
+                                        : colors.secondaryText,
+                                  ),
                                 ),
                                 if (!isSignupScreen)
                                   Container(
                                     margin: EdgeInsets.only(top: 3),
                                     height: 2,
                                     width: 55,
-                                    color: Colors.blue,
+                                    color: colors.accent,
                                   )
                               ],
                             ),
@@ -146,18 +157,19 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                                 Text(
                                   "SIGNUP",
                                   style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: isSignupScreen
-                                          ? MyColors().activeColor
-                                          : MyColors().textColor1),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: isSignupScreen
+                                        ? colors.accent
+                                        : colors.secondaryText,
+                                  ),
                                 ),
                                 if (isSignupScreen)
                                   Container(
                                     margin: EdgeInsets.only(top: 3),
                                     height: 2,
                                     width: 55,
-                                    color: Colors.blue,
+                                    color: colors.accent,
                                   )
                               ],
                             ),
@@ -181,6 +193,10 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
   }
 
   Container buildSigninSection() {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
     return Container(
       margin: EdgeInsets.only(top: 20),
       child: Column(
@@ -189,19 +205,20 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
             controller: emailController,
             decoration: InputDecoration(
               prefixIcon: Icon(MaterialCommunityIcons.email_outline,
-                  color: MyColors().iconColor),
+                  color: colors.iconColor),
               enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: MyColors().textColor1),
+                borderSide: BorderSide(color: colors.secondaryText),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: MyColors().textColor1),
+                borderSide: BorderSide(color: colors.accent),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               contentPadding: EdgeInsets.all(10),
               hintText: "Email",
-              hintStyle: TextStyle(fontSize: 14, color: MyColors().textColor1),
+              hintStyle: TextStyle(fontSize: 14, color: colors.secondaryText),
             ),
+            style: TextStyle(color: colors.primaryText),
           ),
           SizedBox(height: 10),
           TextField(
@@ -209,19 +226,20 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
             obscureText: true,
             decoration: InputDecoration(
               prefixIcon: Icon(MaterialCommunityIcons.lock_outline,
-                  color: MyColors().iconColor),
+                  color: colors.iconColor),
               enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: MyColors().textColor1),
+                borderSide: BorderSide(color: colors.secondaryText),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: MyColors().textColor1),
+                borderSide: BorderSide(color: colors.accent),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               contentPadding: EdgeInsets.all(10),
               hintText: "Password",
-              hintStyle: TextStyle(fontSize: 14, color: MyColors().textColor1),
+              hintStyle: TextStyle(fontSize: 14, color: colors.secondaryText),
             ),
+            style: TextStyle(color: colors.primaryText),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -230,7 +248,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                 children: [
                   Checkbox(
                     value: isRememberMe,
-                    activeColor: MyColors().textColor2,
+                    activeColor: colors.accent,
                     onChanged: (value) {
                       setState(() {
                         isRememberMe = !isRememberMe;
@@ -239,14 +257,13 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                   ),
                   Text("Remember me",
                       style:
-                          TextStyle(fontSize: 12, color: MyColors().textColor1))
+                          TextStyle(fontSize: 12, color: colors.secondaryText))
                 ],
               ),
               TextButton(
                 onPressed: () {},
                 child: Text("Forgot Password?",
-                    style:
-                        TextStyle(fontSize: 12, color: MyColors().textColor1)),
+                    style: TextStyle(fontSize: 12, color: colors.accent)),
               )
             ],
           )
@@ -256,6 +273,10 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
   }
 
   Container buildSignupSection() {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
     return Container(
       margin: EdgeInsets.only(top: 20),
       child: Column(
@@ -264,18 +285,18 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
             controller: emailController,
             decoration: InputDecoration(
               prefixIcon: Icon(MaterialCommunityIcons.email_outline,
-                  color: MyColors().iconColor),
+                  color: colors.iconColor),
               enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: MyColors().textColor1),
+                borderSide: BorderSide(color: colors.secondaryText),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: MyColors().textColor1),
+                borderSide: BorderSide(color: colors.secondaryText),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               contentPadding: EdgeInsets.all(10),
               hintText: "Email",
-              hintStyle: TextStyle(fontSize: 14, color: MyColors().textColor1),
+              hintStyle: TextStyle(fontSize: 14, color: colors.secondaryText),
             ),
           ),
           SizedBox(height: 10),
@@ -284,57 +305,57 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
             obscureText: true,
             decoration: InputDecoration(
               prefixIcon: Icon(MaterialCommunityIcons.lock_outline,
-                  color: MyColors().iconColor),
+                  color: colors.iconColor),
               enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: MyColors().textColor1),
+                borderSide: BorderSide(color: colors.secondaryText),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: MyColors().textColor1),
+                borderSide: BorderSide(color: colors.secondaryText),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               contentPadding: EdgeInsets.all(10),
               hintText: "Password",
-              hintStyle: TextStyle(fontSize: 14, color: MyColors().textColor1),
+              hintStyle: TextStyle(fontSize: 14, color: colors.secondaryText),
             ),
           ),
           SizedBox(height: 10),
           DropdownButtonFormField<int>(
             value: selectedRole,
-            dropdownColor: MyColors().black,
+            dropdownColor: colors.background,
             decoration: InputDecoration(
               prefixIcon: Icon(MaterialCommunityIcons.account_outline,
-                  color: MyColors().iconColor),
+                  color: colors.iconColor),
               enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: MyColors().textColor1),
+                borderSide: BorderSide(color: colors.secondaryText),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: MyColors().textColor1),
+                borderSide: BorderSide(color: colors.secondaryText),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               contentPadding: EdgeInsets.all(10),
               labelText: 'Select Role',
-              labelStyle: TextStyle(fontSize: 14, color: MyColors().textColor1),
+              labelStyle: TextStyle(fontSize: 14, color: colors.secondaryText),
             ),
-            style: TextStyle(color: MyColors().textColor1),
+            style: TextStyle(color: colors.secondaryText),
             items: [
               DropdownMenuItem<int>(
                   value: 1,
                   child: Text("Admin",
-                      style: TextStyle(color: MyColors().textColor1))),
+                      style: TextStyle(color: colors.secondaryText))),
               DropdownMenuItem<int>(
                   value: 2,
                   child: Text("User",
-                      style: TextStyle(color: MyColors().textColor1))),
+                      style: TextStyle(color: colors.secondaryText))),
               DropdownMenuItem<int>(
                   value: 3,
                   child: Text("Developer",
-                      style: TextStyle(color: MyColors().textColor1))),
+                      style: TextStyle(color: colors.secondaryText))),
               DropdownMenuItem<int>(
                   value: 4,
                   child: Text("Claims Manager",
-                      style: TextStyle(color: MyColors().textColor1))),
+                      style: TextStyle(color: colors.secondaryText))),
             ],
             onChanged: (int? newValue) {
               setState(() {
@@ -444,8 +465,11 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
     );
   }
 
-  Widget buildTextField(
-      IconData icon, String hintText, bool isPassword, bool isEmail) {
+  Widget buildTextField(IconData icon, String hintText, bool isPassword,
+      bool isEmail, BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: TextField(
@@ -454,19 +478,19 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
         decoration: InputDecoration(
           prefixIcon: Icon(
             icon,
-            color: MyColors().iconColor,
+            color: colors.iconColor,
           ),
           enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: MyColors().textColor1),
+            borderSide: BorderSide(color: colors.secondaryText),
             borderRadius: BorderRadius.all(Radius.circular(35.0)),
           ),
           focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: MyColors().textColor1),
+            borderSide: BorderSide(color: colors.secondaryText),
             borderRadius: BorderRadius.all(Radius.circular(35.0)),
           ),
           contentPadding: EdgeInsets.all(10),
           hintText: hintText,
-          hintStyle: TextStyle(fontSize: 14, color: MyColors().textColor1),
+          hintStyle: TextStyle(fontSize: 14, color: colors.secondaryText),
         ),
       ),
     );
@@ -592,15 +616,18 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
   }
 
   void showOtpDialog(String email) {
-    TextEditingController otpController = TextEditingController();
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
 
+    TextEditingController otpController = TextEditingController();
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: MyColors().black,
+          backgroundColor: colors.background,
           title: Text("Εισαγωγή OTP Κωδικού",
-              style: TextStyle(color: MyColors().cyan)),
+              style: TextStyle(color: colors.accent)),
           content: TextField(
             controller: otpController,
             keyboardType: TextInputType.number,
@@ -608,9 +635,9 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
               labelText: "Εισάγετε τον κωδικό OTP",
               labelStyle: TextStyle(color: Colors.white),
               enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: MyColors().cyan)),
+                  borderSide: BorderSide(color: colors.accent)),
               focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: MyColors().cyan)),
+                  borderSide: BorderSide(color: colors.accent)),
             ),
             style: TextStyle(color: Colors.white),
           ),
@@ -635,7 +662,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                   Navigator.pop(context);
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: MyColors().cyan),
+              style: ElevatedButton.styleFrom(backgroundColor: colors.accent),
               child: Text("Επιβεβαίωση"),
             ),
           ],

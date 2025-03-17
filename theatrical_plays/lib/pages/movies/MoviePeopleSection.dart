@@ -48,6 +48,10 @@ class _MoviePeopleSectionState extends State<MoviePeopleSection> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
     return FutureBuilder<List<RelatedActor>>(
       future: loadRelatedActors(),
       builder:
@@ -61,7 +65,7 @@ class _MoviePeopleSectionState extends State<MoviePeopleSection> {
           return Center(
             child: Text(
               "Error loading actors",
-              style: TextStyle(color: MyColors().cyan, fontSize: 22),
+              style: TextStyle(color: colors.accent, fontSize: 22),
             ),
           );
         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
@@ -98,7 +102,7 @@ class _MoviePeopleSectionState extends State<MoviePeopleSection> {
                 ),
                 title: Text(
                   "${actor.fullName} - ${actor.role}",
-                  style: TextStyle(color: MyColors().cyan),
+                  style: TextStyle(color: colors.accent),
                 ),
               );
             },

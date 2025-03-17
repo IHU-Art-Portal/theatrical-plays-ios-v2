@@ -40,15 +40,19 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
     return Scaffold(
       backgroundColor: Colors.white,
       // AppBar options and colors
       appBar: AppBar(
-        backgroundColor: MyColors().black,
+        backgroundColor: colors.background,
         elevation: 0,
         title: Text(
           "Theatrical Analytics",
-          style: TextStyle(color: MyColors().cyan),
+          style: TextStyle(color: colors.accent),
         ),
         centerTitle: true,
         actions: [
@@ -72,13 +76,13 @@ class _HomeState extends State<Home> {
                   );
                 }
               },
-              color: MyColors().black, // ✅ Μαύρο background στο μενού
+              color: colors.background, // ✅ Μαύρο background στο μενού
               itemBuilder: (BuildContext context) => [
                 PopupMenuItem(
                   value: "credits",
                   child: Row(
                     children: [
-                      Icon(Icons.euro, color: Colors.yellow, size: 20),
+                      Icon(Icons.euro, color: Colors.orange, size: 20),
                       SizedBox(width: 8),
                       FutureBuilder<Map<String, dynamic>?>(
                         future: UserService.fetchUserProfile(),
@@ -86,7 +90,7 @@ class _HomeState extends State<Home> {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
                             return Text("Loading...",
-                                style: TextStyle(color: Colors.white));
+                                style: TextStyle(color: colors.primaryText));
                           } else if (snapshot.hasError ||
                               snapshot.data == null) {
                             return Text("Error",
@@ -95,8 +99,8 @@ class _HomeState extends State<Home> {
                             double credits = snapshot.data?['credits'] ?? 0.0;
                             return Text(
                               "Credits: ${credits.toStringAsFixed(2)} €",
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 16),
+                              style: TextStyle(
+                                  color: colors.primaryText, fontSize: 16),
                             );
                           }
                         },
@@ -108,8 +112,8 @@ class _HomeState extends State<Home> {
                   value: "profile",
                   child: ListTile(
                     leading: Icon(Icons.person, color: Colors.blue),
-                    title:
-                        Text("Προφίλ", style: TextStyle(color: Colors.white)),
+                    title: Text("Προφίλ",
+                        style: TextStyle(color: colors.primaryText)),
                   ),
                 ),
                 PopupMenuItem(
@@ -117,7 +121,7 @@ class _HomeState extends State<Home> {
                   child: ListTile(
                     leading: Icon(Icons.exit_to_app, color: Colors.red),
                     title: Text("Αποσύνδεση",
-                        style: TextStyle(color: Colors.white)),
+                        style: TextStyle(color: colors.primaryText)),
                   ),
                 ),
               ],
@@ -136,12 +140,12 @@ class _HomeState extends State<Home> {
       // Bottom navigation bar size, colors, and snake shape
       bottomNavigationBar: SnakeNavigationBar.color(
         height: 60,
-        backgroundColor: MyColors().black,
+        backgroundColor: colors.background,
         snakeShape: snakeShape,
-        snakeViewColor: MyColors().cyan,
+        snakeViewColor: colors.accent,
         selectedItemColor:
-            snakeShape == SnakeShape.indicator ? MyColors().cyan : null,
-        unselectedItemColor: Colors.white,
+            snakeShape == SnakeShape.indicator ? colors.accent : null,
+        unselectedItemColor: colors.iconColor,
         showUnselectedLabels: true,
         showSelectedLabels: true,
         currentIndex: _selectedItemPosition,

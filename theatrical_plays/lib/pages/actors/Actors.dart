@@ -30,8 +30,12 @@ class _ActorsState extends State<Actors> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
     return Scaffold(
-      backgroundColor: MyColors().black,
+      backgroundColor: colors.background,
       body: Column(
         children: [
           buildSearch(),
@@ -67,7 +71,7 @@ class _ActorsState extends State<Actors> {
                     ),
                     title: Text(
                       actors[index].fullName,
-                      style: TextStyle(color: MyColors().cyan),
+                      style: TextStyle(color: colors.accent),
                     ),
                   );
                 }),

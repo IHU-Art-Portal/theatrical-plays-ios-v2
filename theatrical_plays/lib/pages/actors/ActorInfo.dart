@@ -71,11 +71,15 @@ class _ActorInfoState extends State<ActorInfo> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
     return Scaffold(
         appBar: AppBar(
           leading: IconButton(
             icon: Icon(Icons.arrow_back,
-                color: MyColors().cyan), // Εικονίδιο "πίσω"
+                color: colors.accent), // Εικονίδιο "πίσω"
             onPressed: () {
               Navigator.pop(context); // Πηγαίνει πίσω στην προηγούμενη σελίδα
             },
@@ -83,11 +87,11 @@ class _ActorInfoState extends State<ActorInfo> {
           // brightness: Brightness.dark,
           title: Text(
             'Actor Info',
-            style: TextStyle(color: MyColors().cyan),
+            style: TextStyle(color: colors.accent),
           ),
-          backgroundColor: MyColors().black,
+          backgroundColor: colors.background,
         ),
-        backgroundColor: MyColors().black,
+        backgroundColor: colors.background,
         body: FutureBuilder<Actor?>(
             future: loadActor(),
             builder: (BuildContext context, AsyncSnapshot<Actor?> snapshot) {
@@ -158,14 +162,13 @@ class _ActorInfoState extends State<ActorInfo> {
                         ],
                       ),
                     ),
-                    Divider(color: MyColors().gray),
+                    Divider(color: colors.secondaryText),
                     Center(
                       child: Padding(
                         padding: EdgeInsets.fromLTRB(0, 5, 0, 15),
                         child: Text(
                           'Related Productions',
-                          style:
-                              TextStyle(color: MyColors().cyan, fontSize: 18),
+                          style: TextStyle(color: colors.accent, fontSize: 18),
                         ),
                       ),
                     ),

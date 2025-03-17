@@ -78,23 +78,27 @@ class _MovieInfoState extends State<MovieInfo> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
     return Scaffold(
         appBar: AppBar(
           leading: IconButton(
             icon: Icon(Icons.arrow_back,
-                color: MyColors().cyan), // Εικονίδιο "πίσω"
+                color: colors.accent), // Εικονίδιο "πίσω"
             onPressed: () {
               Navigator.pop(context); // Πηγαίνει πίσω στην προηγούμενη σελίδα
             },
           ),
           title: Text(
             'Movie Info',
-            style: TextStyle(color: MyColors().cyan),
+            style: TextStyle(color: colors.accent),
           ),
-          backgroundColor: MyColors().black,
+          backgroundColor: colors.background,
           systemOverlayStyle: SystemUiOverlayStyle.light,
         ),
-        backgroundColor: MyColors().black,
+        backgroundColor: colors.background,
         // Call the method to load the movie and show it
         body: FutureBuilder<Movie?>(
             future: loadMovie(),
@@ -104,12 +108,12 @@ class _MovieInfoState extends State<MovieInfo> {
               } else if (snapshot.hasError) {
                 return Text(
                   "Error loading movie",
-                  style: TextStyle(color: MyColors().cyan),
+                  style: TextStyle(color: colors.accent),
                 );
               } else if (!snapshot.hasData || snapshot.data == null) {
                 return Text(
                   "No movie data available",
-                  style: TextStyle(color: MyColors().cyan),
+                  style: TextStyle(color: colors.accent),
                 );
               } else {
                 return ListView(
@@ -118,13 +122,12 @@ class _MovieInfoState extends State<MovieInfo> {
                     MovieProfile(
                       movie: snapshot.data!,
                     ), // Pass the movie data
-                    Divider(color: MyColors().gray),
+                    Divider(color: colors.secondaryText),
                     Center(
                         child: Padding(
                       padding: EdgeInsets.fromLTRB(0, 5, 0, 15),
                       child: Text('Related Actors',
-                          style:
-                              TextStyle(color: MyColors().cyan, fontSize: 20)),
+                          style: TextStyle(color: colors.accent, fontSize: 20)),
                     )),
                     MoviePeopleSection(snapshot
                         .data!.id), // Movie ID is used for related actors

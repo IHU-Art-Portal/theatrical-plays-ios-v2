@@ -7,7 +7,6 @@ import 'package:http/http.dart' as http;
 import 'package:theatrical_plays/using/AuthorizationStore.dart';
 import 'dart:convert';
 import 'dart:math';
-import 'package:theatrical_plays/using/Constants.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -33,12 +32,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
     return Scaffold(
-      backgroundColor: MyColors().black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: MyColors().black,
+        backgroundColor: colors.background,
         elevation: 0,
-        title: Text("Home", style: TextStyle(color: MyColors().cyan)),
+        title: Text(" Αρχική", style: TextStyle(color: theme.primaryColor)),
       ),
       body: FutureBuilder<List<dynamic>>(
         future: futureData,
@@ -62,9 +65,9 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 buildCategorySection("Actors", randomActors, buildActorTile),
-                Divider(color: MyColors().gray),
+                Divider(color: theme.dividerColor),
                 buildCategorySection("Movies", randomMovies, buildMovieTile),
-                Divider(color: MyColors().gray),
+                Divider(color: theme.dividerColor),
                 buildCategorySection(
                     "Theaters", randomTheaters, buildTheaterTile),
               ],
@@ -77,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<T> getRandomItems<T>(List<T> list, int count) {
     if (list.length <= count) {
-      return List.from(list); // Αν έχει λιγότερα από count, επιστρέφουμε όλα
+      return List.from(list);
     }
 
     Random random = Random();
@@ -96,25 +99,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (response.statusCode == 200) {
         var jsonData = jsonDecode(response.body);
-
-        if (jsonData['data'] == null || jsonData['data']['results'] == null) {
-          print("No actors found in API response");
-          return [];
-        }
-
         List<Actor> actors = [];
 
-        for (var item in jsonData['data']['results']) {
+        for (var item in jsonData['data']['results'] ?? []) {
           actors.add(Actor(
             id: item['id'] ?? 0,
             fullName: item['fullname'] ?? 'Unknown Name',
-            image: (item['images'] != null && item['images'].isNotEmpty)
+            image: item['images']?.isNotEmpty == true
                 ? item['images'][0]['imageUrl']
                 : 'https://example.com/default-image.jpg',
           ));
         }
-
-        print("Actors loaded: ${actors.length}");
         return actors;
       } else {
         throw Exception("Failed to load actors");
@@ -138,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
         var jsonData = jsonDecode(response.body);
         List<Movie> movies = [];
 
-        for (var item in jsonData['data']['results']) {
+        for (var item in jsonData['data']['results'] ?? []) {
           movies.add(Movie(
             id: item['id'] ?? 0,
             title: item['title'] ?? 'Unknown Title',
@@ -170,23 +165,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (response.statusCode == 200) {
         var jsonData = jsonDecode(response.body);
-
-        if (jsonData['data'] == null || jsonData['data']['results'] == null) {
-          print("No theaters found in API response");
-          return [];
-        }
-
         List<Theater> theaters = [];
 
-        for (var item in jsonData['data']['results']) {
+        for (var item in jsonData['data']['results'] ?? []) {
           theaters.add(Theater(
             id: item['id'] ?? 0,
             title: item['title'] ?? 'Unknown Theater',
             address: item['address'] ?? 'No address available',
           ));
         }
-
-        print("Theaters loaded: ${theaters.length}");
         return theaters;
       } else {
         throw Exception("Failed to load theaters");
@@ -197,78 +184,37 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Widget buildActorTile(BuildContext context, Actor actor) => Container(
-        width: 100, // ✅ Σταθερό πλάτος
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 40, // ✅ Σταθερό μέγεθος
-              backgroundImage: actor.image.isNotEmpty
-                  ? NetworkImage(actor.image)
-                  : AssetImage('assets/default_avatar.png')
-                      as ImageProvider, // ✅ Default εικόνα
-            ),
-            SizedBox(height: 8),
-            Text(
-              actor.fullName,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: MyColors().cyan, fontSize: 14),
-            ),
-          ],
-        ),
+  Widget buildActorTile(BuildContext context, Actor actor) => Column(
+        children: [
+          CircleAvatar(
+            radius: 40,
+            backgroundImage: NetworkImage(actor.image),
+          ),
+          SizedBox(height: 8),
+          Text(actor.fullName, textAlign: TextAlign.center),
+        ],
       );
 
-  Widget buildMovieTile(BuildContext context, Movie movie) => Container(
-        width: 100, // ✅ Σταθερό πλάτος
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 40, // ✅ Σταθερό μέγεθος
-              backgroundImage:
-                  (movie.mediaUrl != null && movie.mediaUrl!.isNotEmpty)
-                      ? NetworkImage(movie.mediaUrl!)
-                      : AssetImage('assets/default_movie.png')
-                          as ImageProvider, // ✅ Default εικόνα
-            ),
-            SizedBox(height: 8),
-            SizedBox(
-              width: 80, // ✅ Περιορισμός του πλάτους του τίτλου
-              child: Text(
-                movie.title,
-                maxLines: 1, // ✅ Μία μόνο γραμμή
-                overflow: TextOverflow
-                    .ellipsis, // ✅ Αν είναι πολύ μεγάλο, προσθέτει "..."
-                textAlign: TextAlign.center,
-                style: TextStyle(color: MyColors().cyan, fontSize: 12),
-              ),
-            ),
-          ],
-        ),
+  Widget buildMovieTile(BuildContext context, Movie movie) => Column(
+        children: [
+          CircleAvatar(
+            radius: 40,
+            backgroundImage: NetworkImage(movie.mediaUrl ?? ''),
+          ),
+          SizedBox(height: 8),
+          Text(movie.title, textAlign: TextAlign.center),
+        ],
       );
 
-  Widget buildTheaterTile(BuildContext context, Theater theater) => Container(
-        width: 100, // ✅ Σταθερό πλάτος
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 40, // ✅ Σταθερό μέγεθος
-              backgroundImage:
-                  AssetImage('assets/default_theater.png'), // ✅ Default εικόνα
-            ),
-            SizedBox(height: 8),
-            SizedBox(
-              width: 80, // ✅ Περιορισμός του πλάτους του τίτλου
-              child: Text(
-                theater.title,
-                maxLines: 1, // ✅ Μία μόνο γραμμή
-                overflow: TextOverflow
-                    .ellipsis, // ✅ Αν είναι πολύ μεγάλο, προσθέτει "..."
-                textAlign: TextAlign.center,
-                style: TextStyle(color: MyColors().cyan, fontSize: 12),
-              ),
-            ),
-          ],
-        ),
+  Widget buildTheaterTile(BuildContext context, Theater theater) => Column(
+        children: [
+          CircleAvatar(
+            radius: 40,
+            backgroundImage: AssetImage('assets/default_theater.png'),
+          ),
+          SizedBox(height: 8),
+          Text(theater.title, textAlign: TextAlign.center),
+        ],
       );
 
   Widget buildCategorySection<T>(String title, List<T> items,
@@ -277,18 +223,13 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Text(
-            title,
-            style: TextStyle(
-                color: MyColors().cyan,
-                fontSize: 18,
-                fontWeight: FontWeight.bold),
-          ),
+          child: Text(title,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: items
-              .map((item) => Expanded(child: itemBuilder(context, item)))
+              .map((item) => Flexible(child: itemBuilder(context, item)))
               .toList(),
         ),
       ],

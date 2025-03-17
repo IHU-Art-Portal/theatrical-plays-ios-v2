@@ -57,6 +57,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget buildProfileScreen() {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
     return Padding(
       padding: EdgeInsets.all(16.0),
       child: Column(
@@ -72,12 +76,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           SizedBox(height: 20),
           Text(
             userData?["email"] ?? "Δεν υπάρχει email",
-            style: TextStyle(fontSize: 22, color: Colors.white),
+            style: TextStyle(fontSize: 22, color: colors.primaryText),
           ),
           SizedBox(height: 5),
           Text(
             "Ρόλος: $userRole",
-            style: TextStyle(fontSize: 18, color: MyColors().gray),
+            style: TextStyle(fontSize: 18, color: colors.secondaryText),
           ),
           SizedBox(height: 10),
 
@@ -86,7 +90,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             "Credits: ${userCredits.toStringAsFixed(2)}", // ✅ Χρήση της μεταβλητής που φορτώσαμε από το API
             style: TextStyle(
                 fontSize: 18,
-                color: Colors.yellow,
+                color: colors.accent,
                 fontWeight: FontWeight.bold),
           ),
           SizedBox(height: 20),
@@ -96,7 +100,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
           SizedBox(height: 20),
 
-          Divider(color: MyColors().gray),
+          Divider(color: colors.secondaryText),
 
           buildProfileActions(),
         ],
@@ -121,6 +125,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget buildSocialButton(
       String platform, String url, IconData icon, Color color) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
     return Column(
       children: [
         IconButton(
@@ -133,19 +140,24 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         Text(
           url.isNotEmpty ? "Προφίλ $platform" : "Δεν έχει προστεθεί",
           style: TextStyle(
-              color: url.isNotEmpty ? Colors.white : Colors.red, fontSize: 12),
+              color: url.isNotEmpty ? colors.primaryText : Colors.red,
+              fontSize: 12),
         ),
       ],
     );
   }
 
   Widget buildProfileActions() {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
     return Column(
       children: [
         ListTile(
-          leading: Icon(Icons.person, color: MyColors().cyan),
-          title:
-              Text("Επεξεργασία Προφίλ", style: TextStyle(color: Colors.white)),
+          leading: Icon(Icons.person, color: colors.accent),
+          title: Text("Επεξεργασία Προφίλ",
+              style: TextStyle(color: colors.primaryText)),
           onTap: () async {
             final updatedData = await Navigator.push(
               context,
@@ -171,13 +183,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           },
         ),
         ListTile(
-          leading: Icon(Icons.lock, color: MyColors().cyan),
-          title: Text("Αλλαγή Κωδικού", style: TextStyle(color: Colors.white)),
+          leading: Icon(Icons.lock, color: colors.accent),
+          title: Text("Αλλαγή Κωδικού",
+              style: TextStyle(color: colors.primaryText)),
           onTap: () {},
         ),
         ListTile(
           leading: Icon(Icons.exit_to_app, color: Colors.red),
-          title: Text("Αποσύνδεση", style: TextStyle(color: Colors.white)),
+          title:
+              Text("Αποσύνδεση", style: TextStyle(color: colors.primaryText)),
           onTap: () {},
         ),
       ],
@@ -186,18 +200,22 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Προφίλ Χρήστη', style: TextStyle(color: MyColors().cyan)),
-        backgroundColor: MyColors().black,
+        title: Text('Προφίλ Χρήστη', style: TextStyle(color: colors.accent)),
+        backgroundColor: colors.background,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: MyColors().cyan),
+          icon: Icon(Icons.arrow_back, color: colors.accent),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      backgroundColor: MyColors().black,
+      backgroundColor: colors.background,
       body: isLoading
-          ? Center(child: CircularProgressIndicator(color: MyColors().cyan))
+          ? Center(child: CircularProgressIndicator(color: colors.accent))
           : (userData == null)
               ? Center(
                   child: Column(
@@ -214,7 +232,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         onPressed: fetchUserData, // ✅ Δοκιμή ξανά
                         child: Text("Δοκιμή ξανά"),
                         style: ElevatedButton.styleFrom(
-                            backgroundColor: MyColors().cyan),
+                            backgroundColor: colors.accent),
                       ),
                     ],
                   ),
@@ -225,14 +243,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   void showAddSocialDialog(String platform) {
     TextEditingController linkController = TextEditingController();
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: MyColors().black,
+          backgroundColor: colors.background,
           title: Text("Προσθήκη $platform Προφίλ",
-              style: TextStyle(color: MyColors().cyan)),
+              style: TextStyle(color: colors.accent)),
           content: TextField(
             controller: linkController,
             keyboardType: TextInputType.url,
@@ -240,9 +261,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               labelText: "Εισάγετε το URL",
               labelStyle: TextStyle(color: Colors.white),
               enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: MyColors().cyan)),
+                  borderSide: BorderSide(color: colors.accent)),
               focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: MyColors().cyan)),
+                  borderSide: BorderSide(color: colors.accent)),
             ),
             style: TextStyle(color: Colors.white),
           ),
@@ -266,7 +287,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   Navigator.pop(context);
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: MyColors().cyan),
+              style: ElevatedButton.styleFrom(backgroundColor: colors.accent),
               child: Text("Αποθήκευση"),
             ),
           ],

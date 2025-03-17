@@ -6,18 +6,22 @@ import 'package:theatrical_plays/using/UserService.dart';
 class PurchaseCreditsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: MyColors().black,
-        title: Text("Αγορά Credits", style: TextStyle(color: MyColors().cyan)),
+        backgroundColor: colors.background,
+        title: Text("Αγορά Credits", style: TextStyle(color: colors.accent)),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: MyColors().cyan),
+          icon: Icon(Icons.arrow_back, color: colors.accent),
           onPressed: () {
             Navigator.pop(context); // ✅ Επιστροφή στην αρχική
           },
         ),
       ),
-      backgroundColor: MyColors().black,
+      backgroundColor: colors.background,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -42,7 +46,7 @@ class PurchaseCreditsScreen extends StatelessWidget {
               icon: Icon(Icons.home, color: Colors.white),
               label: Text("Επιστροφή στην Αρχική"),
               style: ElevatedButton.styleFrom(
-                backgroundColor: MyColors().cyan,
+                backgroundColor: colors.accent,
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 textStyle: TextStyle(fontSize: 16),
               ),
@@ -54,8 +58,12 @@ class PurchaseCreditsScreen extends StatelessWidget {
   }
 
   Widget buildCreditPackage(BuildContext context, int credits, double price) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
     return Card(
-      color: MyColors().gray,
+      color: colors.secondaryText,
       margin: EdgeInsets.symmetric(vertical: 8, horizontal: 20),
       child: ListTile(
         leading: Icon(Icons.monetization_on, color: Colors.yellow, size: 30),
