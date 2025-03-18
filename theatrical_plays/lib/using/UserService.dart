@@ -30,8 +30,14 @@ class UserService {
         Map<String, dynamic> jsonData = jsonDecode(response.body);
         print("✅ User Info Loaded: ${jsonData['data']}");
 
+        // Προσθήκη ελέγχου για το userImages
+        List<dynamic> images = jsonData['data']['userImages'] ?? [];
+
+        print("📷 Found ${images.length} images!"); // Debugging
+        images.forEach((img) => print("📸 Image URL: ${img['imageLocation']}"));
+
         return {
-          "userId": jsonData['data']["userId"] ?? "",
+          "userId": jsonData['data']["id"] ?? "",
           "facebookUrl": jsonData['data']["facebook"] ?? "",
           "instagramUrl": jsonData['data']["instagram"] ?? "",
           "youtubeUrl": jsonData['data']["youtube"] ?? "",
@@ -41,8 +47,8 @@ class UserService {
           "credits": jsonData['data']["balance"] ?? 0.0,
           "phoneNumber": jsonData['data']["phoneNumber"] ?? "",
           "phoneVerified": jsonData['data']["phoneVerified"] ?? false,
-          "userImages": jsonData['data']["images"] ??
-              [], // Επιστρέφουμε τις φωτογραφίες του χρήστη
+          "userImages": images, // ✅ Επιστρέφουμε τις φωτογραφίες του χρήστη
+          "profilePhoto": jsonData['data']["profilePhoto"] ?? {},
         };
       } else {
         print("❌ Σφάλμα στο API: ${response.statusCode}");
@@ -320,46 +326,57 @@ class UserService {
     return "http://${Constants().hostName}/api/Stripe/create-checkout-session?creditAmount=$credits&price=$price";
   }
 
-  static Future<String> uploadUserPhoto(File imageFile) async {
+  static Future<bool> uploadUserPhoto(
+      {File? imageFile,
+      String? imageUrl,
+      String label = "User Image",
+      bool isProfile = false}) async {
     try {
       if (globalAccessToken == null) {
         print("❌ Δεν υπάρχει αποθηκευμένο token.");
-        return ""; // Επιστρέφουμε κενό string αντί για false
+        return false;
       }
 
-      // Δημιουργούμε το HTTP request για το ανέβασμα της φωτογραφίας
-      var request = http.MultipartRequest(
-          'POST', Uri.parse('http://localhost:8080/api/User/UploadPhoto'));
+      Uri uri =
+          Uri.parse("http://${Constants().hostName}/api/User/UploadPhoto");
 
-      // Προσθήκη της φωτογραφίας στο request
-      request.files
-          .add(await http.MultipartFile.fromPath('file', imageFile.path));
+      // ✅ Αν υπάρχει αρχείο, το στέλνουμε ως Base64
+      String? base64Image;
+      if (imageFile != null) {
+        List<int> imageBytes = await imageFile.readAsBytes();
+        base64Image = base64Encode(imageBytes);
+      }
 
-      // Προσθήκη του Authorization header
-      request.headers['Authorization'] =
-          "Bearer $globalAccessToken"; // Χρησιμοποιούμε το globalAccessToken
+      // ✅ Δημιουργούμε το JSON σώμα της request
+      Map<String, dynamic> body = {
+        "photo": base64Image ?? imageUrl, // ✅ Είτε Base64 είτε URL
+        "label": label,
+        "isProfile": isProfile,
+      };
 
-      // Προσθήκη του Content-Type header
-      request.headers['Content-Type'] =
-          'multipart/form-data'; // Σημαντικό για το ανέβασμα αρχείων
+      print("📤 Αποστολή δεδομένων: ${jsonEncode(body)}");
 
-      // Αποστολή του request
-      var response = await request.send();
+      var response = await http.post(
+        uri,
+        headers: {
+          "Authorization": "Bearer $globalAccessToken",
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        },
+        body: jsonEncode(body),
+      );
 
-      // Έλεγχος για την επιτυχία της αίτησης
       if (response.statusCode == 200) {
-        var jsonData = jsonDecode(await response.stream.bytesToString());
-        print("✅ Η εικόνα ανέβηκε επιτυχώς!");
-
-        // Επιστρέφουμε το URL της εικόνας από την απάντηση του API
-        return jsonData["imageUrl"] ?? "";
+        print("✅ Εικόνα αποθηκεύτηκε στο backend!");
+        return true;
       } else {
-        print("❌ Αποτυχία ανέβασματος εικόνας: ${response.statusCode}");
-        return ""; // Επιστρέφουμε κενό string σε περίπτωση αποτυχίας
+        print("❌ Αποτυχία αποστολής εικόνας: ${response.statusCode}");
+        print("📩 API Response: ${response.body}");
+        return false;
       }
     } catch (e) {
-      print("❌ Σφάλμα στο ανέβασμα εικόνας: $e");
-      return ""; // Επιστρέφουμε κενό string σε περίπτωση σφάλματος
+      print("❌ Σφάλμα αποστολής εικόνας: $e");
+      return false;
     }
   }
 
@@ -397,6 +414,38 @@ class UserService {
     } catch (e) {
       print("❌ Error fetching user images: $e");
       return [];
+    }
+  }
+
+  static Future<bool> deleteUserImage(String imageId) async {
+    try {
+      if (globalAccessToken == null) {
+        print("❌ Δεν υπάρχει αποθηκευμένο token.");
+        return false;
+      }
+
+      Uri uri = Uri.parse(
+          "http://${Constants().hostName}/api/User/Remove/Image/$imageId");
+
+      http.Response response = await http.delete(
+        uri,
+        headers: {
+          "Authorization": "Bearer $globalAccessToken",
+          "Accept": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Η εικόνα διαγράφηκε επιτυχώς!");
+        return true;
+      } else {
+        print("❌ Σφάλμα διαγραφής εικόνας: ${response.statusCode}");
+        print("📩 API Response: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("❌ Σφάλμα κατά τη διαγραφή εικόνας: $e");
+      return false;
     }
   }
 }
