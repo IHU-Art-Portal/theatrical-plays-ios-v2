@@ -7,6 +7,9 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:io';
 
 class UserService {
+  static String? lastResponseBody; // Για debugging
+  static String? lastImageId; // Για αποθήκευση του τελευταίου ID εικόνας
+
   static Future<Map<String, dynamic>?> fetchUserProfile() async {
     print("📤 Fetching user profile...");
 
@@ -68,6 +71,15 @@ class UserService {
         return false;
       }
 
+      // Ελέγχουμε το τρέχον προφίλ για να δούμε το υπάρχον τηλέφωνο
+      var profileData = await fetchUserProfile();
+      print("📋 Τρέχοντα δεδομένα προφίλ: $profileData");
+      if (profileData != null) {
+        String? existingPhone = profileData["phoneNumber"];
+        bool isVerified = profileData["phoneVerified"] ?? false;
+        print("📞 Υπάρχον τηλέφωνο: $existingPhone, Επαληθευμένο: $isVerified");
+      }
+
       // ✅ Χρησιμοποιούμε query parameter αντί για body
       Uri uri = Uri.parse(
           "http://${Constants().hostName}/api/User/register/phoneNumber?phoneNumber=${Uri.encodeComponent(phoneNumber)}");
@@ -80,12 +92,27 @@ class UserService {
         },
       );
 
+      lastResponseBody = response.body; // Αποθήκευση για debugging
+      print(
+          "📩 API Response: ${response.body}, Status: ${response.statusCode}");
+
       if (response.statusCode == 200) {
         print("✅ Ο αριθμός τηλεφώνου καταχωρήθηκε επιτυχώς!");
         return true;
+      } else if (response.statusCode == 400) {
+        Map<String, dynamic> responseData = jsonDecode(response.body);
+        if (responseData["errorCode"] == "BadRequest" &&
+            responseData["message"] == "User already has a registered number") {
+          print(
+              "❌ Ο χρήστης έχει ήδη καταχωρημένο τηλέφωνο, αν και τα δεδομένα δείχνουν NULL. Ελέγξτε το backend.");
+          return false;
+        } else {
+          print(
+              "❌ Σφάλμα καταχώρισης αριθμού τηλεφώνου: ${response.statusCode}");
+          return false;
+        }
       } else {
         print("❌ Σφάλμα καταχώρισης αριθμού τηλεφώνου: ${response.statusCode}");
-        print("📩 API Response: ${response.body}");
         return false;
       }
     } catch (e) {
@@ -326,30 +353,29 @@ class UserService {
     return "http://${Constants().hostName}/api/Stripe/create-checkout-session?creditAmount=$credits&price=$price";
   }
 
-  static Future<bool> uploadUserPhoto(
-      {File? imageFile,
-      String? imageUrl,
-      String label = "User Image",
-      bool isProfile = false}) async {
+  static Future<String?> uploadUserPhoto({
+    File? imageFile,
+    String? imageUrl,
+    required String label,
+    bool isProfile = false,
+  }) async {
     try {
       if (globalAccessToken == null) {
         print("❌ Δεν υπάρχει αποθηκευμένο token.");
-        return false;
+        return null;
       }
 
       Uri uri =
           Uri.parse("http://${Constants().hostName}/api/User/UploadPhoto");
 
-      // ✅ Αν υπάρχει αρχείο, το στέλνουμε ως Base64
       String? base64Image;
       if (imageFile != null) {
         List<int> imageBytes = await imageFile.readAsBytes();
         base64Image = base64Encode(imageBytes);
       }
 
-      // ✅ Δημιουργούμε το JSON σώμα της request
       Map<String, dynamic> body = {
-        "photo": base64Image ?? imageUrl, // ✅ Είτε Base64 είτε URL
+        "photo": base64Image ?? imageUrl,
         "label": label,
         "isProfile": isProfile,
       };
@@ -366,16 +392,71 @@ class UserService {
         body: jsonEncode(body),
       );
 
+      lastResponseBody = response.body; // Αποθήκευση για debugging
+      print(
+          "📩 API Response: ${response.body}, Status: ${response.statusCode}");
+
       if (response.statusCode == 200) {
         print("✅ Εικόνα αποθηκεύτηκε στο backend!");
-        return true;
+        Map<String, dynamic> responseData = jsonDecode(response.body);
+        String? imageId =
+            responseData['id']?.toString(); // Προσπάθεια εξαγωγής id
+        if (imageId != null) {
+          lastImageId = imageId; // Αποθηκεύουμε το ID
+          return imageId; // Επιστρέφουμε το ID
+        } else {
+          print(
+              "⚠️ Δεν βρέθηκε ID στην απόκριση του API. Δημιουργία προσωρινού ID.");
+          // Δημιουργία προσωρινού ID αν δεν υπάρχει
+          String tempId = DateTime.now().millisecondsSinceEpoch.toString();
+          lastImageId = tempId;
+          return tempId; // Επιστρέφει προσωρινό ID
+        }
       } else {
         print("❌ Αποτυχία αποστολής εικόνας: ${response.statusCode}");
-        print("📩 API Response: ${response.body}");
-        return false;
+        return null;
       }
     } catch (e) {
       print("❌ Σφάλμα αποστολής εικόνας: $e");
+      return null;
+    }
+  }
+
+  static Future<bool> updateProfilePhoto(String imageId) async {
+    try {
+      if (globalAccessToken == null) {
+        print("❌ Δεν υπάρχει αποθηκευμένο token.");
+        return false;
+      }
+
+      Uri uri = Uri.parse(
+          "http://${Constants().hostName}/api/User/SetProfilePhoto/$imageId");
+
+      print("📤 Requesting profile photo update with imageId: $imageId");
+
+      http.Response response = await http.put(
+        uri,
+        headers: {
+          "Authorization": "Bearer $globalAccessToken",
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+      );
+
+      lastResponseBody = response.body; // Αποθήκευση για debugging
+      print(
+          "📩 Profile Update Response: ${response.body}, Status: ${response.statusCode}");
+
+      if (response.statusCode == 200) {
+        print("✅ Η φωτογραφία ορίστηκε ως προφίλ!");
+        return true;
+      } else {
+        print("❌ Σφάλμα ορισμού φωτογραφίας προφίλ: ${response.statusCode}");
+        print("📩 Λεπτομέρειες σφάλματος: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("❌ Σφάλμα κατά τον ορισμό φωτογραφίας προφίλ: $e");
       return false;
     }
   }

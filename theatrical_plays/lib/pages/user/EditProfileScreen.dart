@@ -164,6 +164,57 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               setState(() => isEditingYouTube = !isEditingYouTube);
             }),
             SizedBox(height: 20),
+
+            // Νέο τμήμα για τον αριθμό τηλεφώνου
+            if (phoneNumber.isNotEmpty)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Τηλέφωνο: $phoneNumber",
+                    style: TextStyle(color: colors.primaryText, fontSize: 16),
+                  ),
+                  Row(
+                    children: [
+                      if (phoneVerified)
+                        Row(
+                          children: [
+                            Icon(Icons.check_circle, color: Colors.green),
+                            SizedBox(width: 5),
+                          ],
+                        )
+                      else
+                        IconButton(
+                          icon: Icon(Icons.verified_user, color: Colors.orange),
+                          onPressed: promptForPhoneVerification,
+                          tooltip: "Επαλήθευση τηλεφώνου",
+                        ),
+                      IconButton(
+                        icon: Icon(Icons.delete, color: Colors.red),
+                        onPressed: handleDeletePhoneNumber,
+                        tooltip: "Διαγραφή τηλεφώνου",
+                      ),
+                    ],
+                  ),
+                ],
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Δεν έχει προστεθεί τηλέφωνο",
+                    style: TextStyle(color: colors.primaryText, fontSize: 16),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.add, color: colors.accent),
+                    onPressed: promptForPhoneNumber,
+                    tooltip: "Προσθήκη τηλεφώνου",
+                  ),
+                ],
+              ),
+            SizedBox(height: 20),
+
             ElevatedButton(
               onPressed: saveProfile,
               style: ElevatedButton.styleFrom(backgroundColor: colors.accent),
@@ -171,7 +222,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             SizedBox(height: 20),
             Divider(color: Colors.white54),
-
             SizedBox(height: 10),
 
             Row(
@@ -198,10 +248,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
               ],
             ),
-
             SizedBox(height: 10),
 
-            // ✅ Διορθωμένο Dark Mode Switch
             FutureBuilder<bool>(
               future: getThemePreference(),
               builder: (context, snapshot) {
@@ -225,8 +273,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         SharedPreferences prefs =
                             await SharedPreferences.getInstance();
                         await prefs.setBool("themeMode", value);
-
-                        // ✅ Ανανέωση της εφαρμογής
                         MyApp.of(context)?.setThemeMode(value);
                       },
                     ),
@@ -288,8 +334,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       icon: Icon(Icons.edit, color: colors.accent),
                       onPressed: onEditToggle,
                     ),
-                    if (existingUrl
-                        .isNotEmpty) // ✅ Δείξε το κουμπί διαγραφής μόνο αν υπάρχει URL
+                    if (existingUrl.isNotEmpty)
+                      SizedBox(width: 5), // Προσθήκη απόστασης 5 pixels
+                    if (existingUrl.isNotEmpty)
                       IconButton(
                         icon: Icon(Icons.delete, color: Colors.red),
                         onPressed: () => deleteSocialMedia(label.toLowerCase()),
@@ -448,7 +495,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         return AlertDialog(
           title: Text("Επιβεβαίωση Χρέωσης"),
           content: Text(
-              "Αυτή η ενέργεια θα αφαιρέσει 10 credits από το υπόλοιπό σας. Θέλετε να συνεχίσετε;"),
+              "Αυτή η ενέργεια θα αφαιρέσει 0.20 credits από το υπόλοιπό σας. Θέλετε να συνεχίσετε;"),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -565,5 +612,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         );
       },
     );
+  }
+
+  Future<bool> getThemePreference() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getBool("themeMode") ?? false;
   }
 }

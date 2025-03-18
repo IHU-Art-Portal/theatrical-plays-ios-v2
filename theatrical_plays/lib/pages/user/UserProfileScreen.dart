@@ -6,6 +6,7 @@ import 'package:theatrical_plays/pages/user/EditProfileScreen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 
 class UserProfileScreen extends StatefulWidget {
   @override
@@ -59,19 +60,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
           userImages = List<Map<String, dynamic>>.from(
             data["userImages"].map((image) {
-              String imageUrl = image["imageLocation"] ??
-                  ""; // Αν είναι null, τοποθετούμε κενή τιμή
+              String imageUrl = image["imageLocation"] ?? "";
               String imageId =
-                  image["id"] ?? ""; // Αν είναι null, τοποθετούμε κενή τιμή
+                  image["id"]?.toString() ?? ""; // Μετατροπή σε String
 
               print("📸 Image Loaded: $imageUrl");
 
               return {
                 "url": imageUrl,
                 "label": image["label"] ?? "",
-                "id": imageId, // Χρησιμοποιούμε το id της εικόνας
-                "isProfile":
-                    image["id"] == data["profilePhoto"]?["id"] ?? false,
+                "id": imageId,
+                "isProfile": (image["id"]?.toString() ?? "") ==
+                    (data["profilePhoto"]?["id"]?.toString() ?? ""),
               };
             }),
           );
@@ -160,17 +160,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               final image = userImages[index];
 
               String imageUrl = image['url'] ?? "";
-              String imageId =
-                  image['id'] ?? ""; // Αν είναι null, τοποθετούμε κενή τιμή
+              String imageId = image['id'] ?? ""; // Αν είναι null, κενή τιμή
 
-              bool isNetworkImage = imageUrl.startsWith("http");
+              // Ελέγχουμε αν το imageUrl είναι Base64 δεδομένα
+              bool isBase64Image =
+                  !imageUrl.startsWith("http") && imageUrl.isNotEmpty;
 
               return Stack(
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: isNetworkImage
-                        ? Image.network(
+                    child: isBase64Image
+                        ? Image.memory(
+                            base64Decode(imageUrl),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              print("❌ Failed to load Base64 image: $error");
+                              return Icon(Icons.error, color: Colors.red);
+                            },
+                          )
+                        : Image.network(
                             imageUrl,
                             fit: BoxFit.cover,
                             loadingBuilder: (context, child, loadingProgress) {
@@ -181,10 +190,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               print("❌ Failed to load image: $imageUrl");
                               return Icon(Icons.error, color: Colors.red);
                             },
-                          )
-                        : Image.memory(
-                            base64Decode(imageUrl),
-                            fit: BoxFit.cover,
                           ),
                   ),
                   Positioned(
@@ -194,12 +199,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       icon: Icon(Icons.delete, color: Colors.red),
                       onPressed: () async {
                         if (imageId.isNotEmpty) {
-                          bool success = await UserService.deleteUserImage(
-                              imageId); // Διαγραφή με ID
+                          bool success =
+                              await UserService.deleteUserImage(imageId);
                           if (success) {
                             setState(() {
-                              userImages.removeAt(
-                                  index); // Αφαίρεση εικόνας από τη λίστα
+                              userImages.removeAt(index);
                             });
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text("Η εικόνα διαγράφηκε!")),
@@ -211,7 +215,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             );
                           }
                         } else {
-                          // Αν δεν υπάρχει ID, δείχνουμε μήνυμα σφάλματος
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                                 content:
@@ -233,8 +236,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         SizedBox(height: 20),
         Center(
           child: ElevatedButton(
-            onPressed:
-                _showUploadOptions, // Εμφάνιση επιλογών για ανέβασμα φωτογραφίας
+            onPressed: _showUploadOptions,
             style: ElevatedButton.styleFrom(
               backgroundColor: colors.accent,
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -291,6 +293,24 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
+  void _handleUploadResult(
+      bool success, String label, String imageData, String imageId) {
+    if (success) {
+      setState(() {
+        userImages.add({
+          "url": imageData,
+          "label": label,
+          "isProfile": false,
+          "id": imageId,
+        });
+      });
+      fetchUserData(); // Ανανέωση δεδομένων
+      showSnackbarMessage("✅ Εικόνα προστέθηκε και αποθηκεύτηκε στο backend!");
+    } else {
+      showSnackbarMessage("❌ Αποτυχία αποστολής εικόνας!");
+    }
+  }
+
   void _showUrlInputDialog() {
     TextEditingController urlController = TextEditingController();
 
@@ -324,35 +344,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ElevatedButton(
               onPressed: () async {
                 String imageUrl = urlController.text.trim();
-
                 if (imageUrl.isNotEmpty &&
                     (imageUrl.startsWith("http") ||
                         imageUrl.startsWith("https"))) {
-                  bool success = await UserService.uploadUserPhoto(
-                      imageUrl: imageUrl,
-                      label: "Εικόνα από URL",
-                      isProfile: false);
-
-                  if (success) {
-                    setState(() {
-                      userImages.add({
-                        "url": imageUrl,
-                        "label": "Εικόνα από URL",
-                        "isProfile": false,
-                      });
-                    });
-
-                    Navigator.pop(context);
-                    showSnackbarMessage(
-                        "✅ Εικόνα προστέθηκε και αποθηκεύτηκε στο backend!");
-                  } else {
-                    showSnackbarMessage("❌ Σφάλμα αποστολής URL στο backend!");
-                  }
+                  Navigator.pop(context);
+                  _showPreviewDialog(
+                      null, imageUrl); // Προεπισκόπηση αντί για άμεσο ανέβασμα
                 } else {
                   showSnackbarMessage("❌ Μη έγκυρο URL!");
                 }
               },
-              child: Text("Προσθήκη"),
+              child: Text("Συνέχεια"),
             ),
           ],
         );
@@ -580,28 +582,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       });
 
       print("📤 Επιλέχθηκε εικόνα: ${selectedImage.path}");
-
-      // ✅ Στέλνουμε την εικόνα στο backend ως Base64
-      bool success = await UserService.uploadUserPhoto(
-          imageFile: selectedImage, label: "Νέα εικόνα", isProfile: false);
-
-      if (success) {
-        print("✅ Η εικόνα ανέβηκε επιτυχώς!");
-
-        setState(() {
-          userImages.add({
-            "url": base64Encode(
-                selectedImage.readAsBytesSync()), // ✅ Προσθήκη Base64 εικόνας
-            "label": "Νέα εικόνα",
-            "isProfile": false,
-          });
-        });
-
-        fetchUserData(); // ✅ Ανανέωση δεδομένων για να πάρουμε και την εικόνα από το API
-      } else {
-        print("❌ Σφάλμα στο ανέβασμα εικόνας");
-        showSnackbarMessage("❌ Αποτυχία αποστολής εικόνας!");
-      }
+      _showPreviewDialog(
+          selectedImage, null); // Προεπισκόπηση αντί για άμεσο ανέβασμα
     } else {
       print("❌ Δεν επιλέχθηκε καμία εικόνα");
     }
@@ -629,6 +611,169 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           style: ElevatedButton.styleFrom(backgroundColor: colors.accent),
         ),
       ],
+    );
+  }
+
+  void _showPreviewDialog(File? imageFile, String? imageUrl) {
+    TextEditingController labelController = TextEditingController();
+    bool isProfile = false;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter dialogSetState) {
+            return AlertDialog(
+              backgroundColor: Colors.grey[850],
+              title: Text("Προεπισκόπηση και Label",
+                  style: TextStyle(color: Colors.white)),
+              content: Container(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.6,
+                  maxWidth: MediaQuery.of(context).size.width * 0.8,
+                ),
+                child: SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: 0,
+                      maxHeight: double.infinity,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            height: 200,
+                            width: double.infinity,
+                            child: imageFile != null
+                                ? Image.file(imageFile, fit: BoxFit.cover)
+                                : Image.network(
+                                    imageUrl!,
+                                    fit: BoxFit.cover,
+                                    loadingBuilder:
+                                        (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Center(
+                                          child: CircularProgressIndicator());
+                                    },
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Icon(Icons.error,
+                                          color: Colors.red);
+                                    },
+                                  ),
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: TextField(
+                            controller: labelController,
+                            decoration: InputDecoration(
+                              labelText: "Label",
+                              labelStyle: TextStyle(color: Colors.white),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.white),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.blue),
+                              ),
+                            ),
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text("Ορισμός ως Φωτογραφία Προφίλ",
+                                  style: TextStyle(color: Colors.white)),
+                              CupertinoSwitch(
+                                value: isProfile,
+                                onChanged: (value) {
+                                  dialogSetState(() {
+                                    isProfile = value;
+                                  });
+                                },
+                                activeColor: Colors.blue,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text("Ακύρωση", style: TextStyle(color: Colors.red)),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    String label = labelController.text.trim();
+                    if (label.isEmpty) {
+                      showSnackbarMessage("❌ Παρακαλώ εισάγετε ένα label!");
+                      return;
+                    }
+                    Navigator.pop(context);
+                    String imageData = imageFile != null
+                        ? base64Encode(imageFile.readAsBytesSync())
+                        : imageUrl!;
+                    String? imageId = await UserService.uploadUserPhoto(
+                        imageFile: imageFile,
+                        imageUrl: imageUrl,
+                        label: label,
+                        isProfile: false);
+                    if (imageId != null) {
+                      _handleUploadResult(true, label, imageData, imageId);
+                      await fetchUserData(); // Ανανέωση δεδομένων για να πάρουμε το σωστό id
+                      if (isProfile) {
+                        String? updatedImageId = userImages.isNotEmpty
+                            ? userImages.last['id']
+                            : null;
+                        if (updatedImageId != null) {
+                          print(
+                              "Attempting to set profile photo with ID: $updatedImageId");
+                          bool profileSuccess =
+                              await UserService.updateProfilePhoto(
+                                  updatedImageId);
+                          if (profileSuccess) {
+                            setState(() {
+                              userImages
+                                  .forEach((img) => img['isProfile'] = false);
+                              if (userImages.isNotEmpty) {
+                                userImages.last['isProfile'] = true;
+                              }
+                            });
+                            showSnackbarMessage(
+                                "✅ Η φωτογραφία ορίστηκε ως προφίλ!");
+                          } else {
+                            print(
+                                "Profile update failed. Response: ${UserService.lastResponseBody}");
+                            showSnackbarMessage(
+                                "❌ Αποτυχία ορισμού φωτογραφίας προφίλ!");
+                          }
+                        } else {
+                          showSnackbarMessage(
+                              "❌ Δεν βρέθηκε ID για την εικόνα!");
+                        }
+                      }
+                    } else {
+                      showSnackbarMessage("❌ Αποτυχία αποστολής εικόνας!");
+                    }
+                  },
+                  child: Text("Ανέβασμα"),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
