@@ -31,11 +31,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Future<void> fetchUserData() async {
-    print("📤 Fetching user profile...");
     var data = await UserService.fetchUserProfile();
 
     if (data != null) {
-      print("✅ Full API Response: $data");
       setState(() {
         userData = data;
         isLoading = false;
@@ -48,12 +46,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         userCredits = data["credits"] ?? 0.0;
 
         if (data["userImages"] != null && data["userImages"].isNotEmpty) {
-          print("📷 Found ${data["userImages"].length} images!");
           userImages = List<Map<String, dynamic>>.from(
             data["userImages"].map((image) {
               String imageUrl = image["imageLocation"] ?? "";
               String imageId = image["id"]?.toString() ?? "";
-              print("📸 Image Loaded: $imageUrl");
               return {
                 "url": imageUrl,
                 "label": image["label"] ?? "",
@@ -64,7 +60,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             }),
           );
         } else {
-          print("❌ No images found in API response.");
           userImages = [];
         }
       });
@@ -72,7 +67,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       setState(() {
         isLoading = false;
       });
-      print("❌ Failed to load user data!");
     }
   }
 
@@ -365,7 +359,5 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 void openURL(String url) async {
   if (await canLaunch(url)) {
     await launch(url);
-  } else {
-    print("❌ Δεν μπόρεσε να ανοίξει το link: $url");
-  }
+  } else {}
 }

@@ -100,7 +100,6 @@ class UserImagesSection extends StatelessWidget {
                           base64Decode(imageUrl),
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
-                            print("❌ Failed to load Base64 image: $error");
                             return Icon(Icons.error, color: Colors.red);
                           },
                         )
@@ -112,7 +111,6 @@ class UserImagesSection extends StatelessWidget {
                             return Center(child: CircularProgressIndicator());
                           },
                           errorBuilder: (context, error, stackTrace) {
-                            print("❌ Failed to load image: $imageUrl");
                             return Icon(Icons.error, color: Colors.red);
                           },
                         ),

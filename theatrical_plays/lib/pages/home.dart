@@ -2,17 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_snake_navigationbar/flutter_snake_navigationbar.dart';
 import 'package:theatrical_plays/pages/home/LoadingHomeScreen.dart';
 import 'package:theatrical_plays/pages/home/login_signup.dart';
-
 import 'package:theatrical_plays/pages/theaters/LoadingTheaters.dart';
 import 'package:theatrical_plays/using/AuthorizationStore.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/UserService.dart';
-
-import 'actors/LoadingActors.dart';
-import 'movies/LoadingMovies.dart';
-import 'user/UserProfileScreen.dart';
+import 'package:theatrical_plays/pages/actors/LoadingActors.dart';
+import 'package:theatrical_plays/pages/movies/LoadingMovies.dart';
+import 'package:theatrical_plays/pages/user/UserProfileScreen.dart';
 import 'package:theatrical_plays/using/globals.dart';
 import 'package:theatrical_plays/pages/user/PurchaseCreditsScreen.dart';
+import 'dart:convert';
 
 class Home extends StatefulWidget {
   static _HomeState? of(BuildContext context) =>
@@ -23,12 +22,9 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  // Snake bottom nav bar options initialization
   SnakeShape snakeShape = SnakeShape.indicator;
   int _selectedItemPosition = 0;
-  double userCredits = 0.0;
 
-  // Bottom nav bar screens
   final List<Widget> screens = [
     LoadingHomeScreen(),
     LoadingActors(),
@@ -46,7 +42,6 @@ class _HomeState extends State<Home> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      // AppBar options and colors
       appBar: AppBar(
         backgroundColor: colors.background,
         elevation: 0,
@@ -76,7 +71,7 @@ class _HomeState extends State<Home> {
                   );
                 }
               },
-              color: colors.background, // ✅ Μαύρο background στο μενού
+              color: colors.background,
               itemBuilder: (BuildContext context) => [
                 PopupMenuItem(
                   value: "credits",
@@ -125,19 +120,47 @@ class _HomeState extends State<Home> {
                   ),
                 ),
               ],
-              child: CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.grey[800],
-                backgroundImage: NetworkImage(
-                  "https://www.gravatar.com/avatar/placeholder?d=mp",
-                ),
+              child: FutureBuilder<Map<String, dynamic>?>(
+                future: UserService.fetchUserProfile(),
+                builder: (context, snapshot) {
+                  String? profileImageUrl;
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    // Ενώ φορτώνει, δείχνουμε το placeholder
+                    profileImageUrl = null;
+                  } else if (snapshot.hasError || snapshot.data == null) {
+                    // Σε περίπτωση σφάλματος, πέφτουμε στο placeholder
+                    profileImageUrl = null;
+                  } else {
+                    // Βρίσκουμε τη φωτογραφία προφίλ από τη λίστα userImages
+                    List<dynamic> userImages =
+                        snapshot.data?['userImages'] ?? [];
+                    Map<String, dynamic>? profileImage = userImages.firstWhere(
+                      (image) => image['isProfile'] == true,
+                      orElse: () => null,
+                    );
+                    profileImageUrl = profileImage != null
+                        ? profileImage['url']
+                        : snapshot.data?['profilePhoto']?['imageLocation'];
+                  }
+
+                  return CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Colors.grey[800],
+                    backgroundImage: profileImageUrl != null &&
+                            profileImageUrl.isNotEmpty
+                        ? (profileImageUrl.startsWith('http')
+                            ? NetworkImage(profileImageUrl)
+                            : MemoryImage(base64Decode(profileImageUrl))
+                                as ImageProvider)
+                        : NetworkImage(
+                            "https://www.gravatar.com/avatar/placeholder?d=mp"),
+                  );
+                },
               ),
             ),
           ),
         ],
       ),
-
-      // Bottom navigation bar size, colors, and snake shape
       bottomNavigationBar: SnakeNavigationBar.color(
         height: 60,
         backgroundColor: colors.background,
@@ -209,13 +232,13 @@ class _HomeState extends State<Home> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Ακύρωση και κλείσιμο διαλόγου
+                Navigator.of(context).pop();
               },
               child: Text("Ακύρωση"),
             ),
             TextButton(
               onPressed: () {
-                logout(); // Κλήση της πραγματικής μεθόδου logout
+                logout();
               },
               child: Text("Αποσύνδεση", style: TextStyle(color: Colors.red)),
             ),
@@ -226,12 +249,12 @@ class _HomeState extends State<Home> {
   }
 
   void logout() {
-    globalAccessToken = null; // Διαγραφή του token
+    globalAccessToken = null;
     AuthorizationStore.deleteAllValuesFromStore();
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => LoginSignupScreen()),
-      (Route<dynamic> route) => false, // Αφαιρεί όλα τα προηγούμενα routes
+      (Route<dynamic> route) => false,
     );
   }
 }

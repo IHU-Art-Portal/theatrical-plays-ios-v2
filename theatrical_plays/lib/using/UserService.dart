@@ -31,13 +31,13 @@ class UserService {
 
       if (response.statusCode == 200) {
         Map<String, dynamic> jsonData = jsonDecode(response.body);
-        print("✅ User Info Loaded: ${jsonData['data']}");
+        // print("✅ User Info Loaded: ${jsonData['data']}");
 
         // Προσθήκη ελέγχου για το userImages
         List<dynamic> images = jsonData['data']['userImages'] ?? [];
 
-        print("📷 Found ${images.length} images!"); // Debugging
-        images.forEach((img) => print("📸 Image URL: ${img['imageLocation']}"));
+        // print("📷 Found ${images.length} images!"); // Debugging
+        // images.forEach((img) => print("📸 Image URL: ${img['imageLocation']}"));
 
         return {
           "userId": jsonData['data']["id"] ?? "",
@@ -73,11 +73,11 @@ class UserService {
 
       // Ελέγχουμε το τρέχον προφίλ για να δούμε το υπάρχον τηλέφωνο
       var profileData = await fetchUserProfile();
-      print("📋 Τρέχοντα δεδομένα προφίλ: $profileData");
+      // print("📋 Τρέχοντα δεδομένα προφίλ: $profileData");
       if (profileData != null) {
         String? existingPhone = profileData["phoneNumber"];
         bool isVerified = profileData["phoneVerified"] ?? false;
-        print("📞 Υπάρχον τηλέφωνο: $existingPhone, Επαληθευμένο: $isVerified");
+        // print("📞 Υπάρχον τηλέφωνο: $existingPhone, Επαληθευμένο: $isVerified");
       }
 
       // ✅ Χρησιμοποιούμε query parameter αντί για body
@@ -93,8 +93,8 @@ class UserService {
       );
 
       lastResponseBody = response.body; // Αποθήκευση για debugging
-      print(
-          "📩 API Response: ${response.body}, Status: ${response.statusCode}");
+      // print(
+      //     "📩 API Response: ${response.body}, Status: ${response.statusCode}");
 
       if (response.statusCode == 200) {
         print("✅ Ο αριθμός τηλεφώνου καταχωρήθηκε επιτυχώς!");
