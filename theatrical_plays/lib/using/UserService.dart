@@ -353,7 +353,7 @@ class UserService {
     return "http://${Constants().hostName}/api/Stripe/create-checkout-session?creditAmount=$credits&price=$price";
   }
 
-  static Future<String?> uploadUserPhoto({
+  static Future<bool> uploadUserPhoto({
     File? imageFile,
     String? imageUrl,
     required String label,
@@ -362,7 +362,7 @@ class UserService {
     try {
       if (globalAccessToken == null) {
         print("❌ Δεν υπάρχει αποθηκευμένο token.");
-        return null;
+        return false;
       }
 
       Uri uri =
@@ -398,27 +398,15 @@ class UserService {
 
       if (response.statusCode == 200) {
         print("✅ Εικόνα αποθηκεύτηκε στο backend!");
-        Map<String, dynamic> responseData = jsonDecode(response.body);
-        String? imageId =
-            responseData['id']?.toString(); // Προσπάθεια εξαγωγής id
-        if (imageId != null) {
-          lastImageId = imageId; // Αποθηκεύουμε το ID
-          return imageId; // Επιστρέφουμε το ID
-        } else {
-          print(
-              "⚠️ Δεν βρέθηκε ID στην απόκριση του API. Δημιουργία προσωρινού ID.");
-          // Δημιουργία προσωρινού ID αν δεν υπάρχει
-          String tempId = DateTime.now().millisecondsSinceEpoch.toString();
-          lastImageId = tempId;
-          return tempId; // Επιστρέφει προσωρινό ID
-        }
+        // Δεν χρειαζόμαστε το ID εδώ, το fetchUserProfile θα το φέρει
+        return true;
       } else {
         print("❌ Αποτυχία αποστολής εικόνας: ${response.statusCode}");
-        return null;
+        return false;
       }
     } catch (e) {
       print("❌ Σφάλμα αποστολής εικόνας: $e");
-      return null;
+      return false;
     }
   }
 
@@ -430,20 +418,24 @@ class UserService {
       }
 
       Uri uri = Uri.parse(
-          "http://${Constants().hostName}/api/User/SetProfilePhoto/$imageId");
+          "http://${Constants().hostName}/api/User/Set/Profile-Photo");
+      Map<String, dynamic> body = {"imageId": imageId};
 
       print("📤 Requesting profile photo update with imageId: $imageId");
+      print("🔹 Full URI: $uri");
+      print("🔹 Body: ${jsonEncode(body)}");
 
-      http.Response response = await http.put(
+      http.Response response = await http.post(
         uri,
         headers: {
           "Authorization": "Bearer $globalAccessToken",
-          "Accept": "application/json",
+          "Accept": "text/plain",
           "Content-Type": "application/json",
         },
+        body: jsonEncode(body),
       );
 
-      lastResponseBody = response.body; // Αποθήκευση για debugging
+      lastResponseBody = response.body;
       print(
           "📩 Profile Update Response: ${response.body}, Status: ${response.statusCode}");
 
