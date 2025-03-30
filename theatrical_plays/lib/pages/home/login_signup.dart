@@ -7,6 +7,7 @@ import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/Constants.dart';
 import 'package:theatrical_plays/pages/Home.dart';
 import 'package:theatrical_plays/using/globals.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 
 class LoginSignupScreen extends StatefulWidget {
   @override
@@ -508,13 +509,17 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
               "content-type": "application/json"
             },
             body: json);
-
         if (response.statusCode == 200) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text("Successful Sign Up! Redirecting to Login..."),
-            duration: Duration(
-                seconds: 2), // Προβολή του μηνύματος για 2 δευτερόλεπτα
-          ));
+          AwesomeNotifications().createNotification(
+            content: NotificationContent(
+              id: 10,
+              channelKey: 'basic_channel',
+              title: '🔔 Successful Sign Up!',
+              body: 'Redirecting to Login...',
+              notificationLayout: NotificationLayout.Default,
+            ),
+          );
+
           // Μετά από 2 δευτερόλεπτα, πηγαίνει στο login screen
           Future.delayed(Duration(seconds: 2), () {
             setState(() {
@@ -523,31 +528,60 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
             });
           });
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text("Invalid Credentials"),
-            duration: Duration(seconds: 5),
-          ));
+          AwesomeNotifications().createNotification(
+            content: NotificationContent(
+              id: 10,
+              channelKey: 'basic_channel',
+              title: '⛔️ Λάθος στοιχεία',
+              body: 'Παρακαλώ προσπαθήστε ξανά',
+              notificationLayout: NotificationLayout.Default,
+            ),
+          );
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("All fields are required"),
-          duration: Duration(seconds: 5),
-        ));
+        AwesomeNotifications().createNotification(
+          content: NotificationContent(
+            id: 10,
+            channelKey: 'basic_channel',
+            title: '⚠️ Όλα τα πεδία είναι απαραίτητα',
+            body: 'Παρακαλώ προσπαθήστε ξανά',
+            notificationLayout: NotificationLayout.Default,
+          ),
+        );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Error signing up"),
-        duration: Duration(seconds: 5),
-      ));
+      AwesomeNotifications().createNotification(
+        content: NotificationContent(
+          id: 10,
+          channelKey: 'basic_channel',
+          title: '⛔️ Πρόβλημα εγγραφής',
+          body: 'Παρακαλώ προσπαθήστε ξανά',
+          notificationLayout: NotificationLayout.Default,
+        ),
+      );
     }
+  }
+
+  void showAwesomeNotification(String body,
+      {String title = '🔔 Ειδοποίηση',
+      NotificationLayout layout = NotificationLayout.Default}) {
+    AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        channelKey: 'basic_channel',
+        title: title,
+        body: body,
+        notificationLayout: layout,
+      ),
+    );
   }
 
   Future<void> doLogin(String email, String password) async {
     try {
       if (email.trim().isEmpty || password.trim().isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("All fields are required")),
-        );
+        showAwesomeNotification("All fields are required...",
+            title: "❌ Login Failed");
+
         return;
       }
 
@@ -578,9 +612,8 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
           globalAccessToken = accessToken;
           print("🔐 Token αποθηκεύτηκε: $globalAccessToken");
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Login Successful! Redirecting...")),
-          );
+          showAwesomeNotification("Login Successful! Redirecting...",
+              title: "✅ Success");
 
           // Μετάβαση στην κεντρική οθόνη
           Future.delayed(Duration(seconds: 2), () {
@@ -590,9 +623,8 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
             );
           });
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Login failed: No access token received")),
-          );
+          showAwesomeNotification("Login failed: No access token received",
+              title: "❌ Login Failed");
         }
       }
       // 🔹 **Έλεγχος αν το API επιστρέψει 409 (2FA ενεργοποιημένο)**
@@ -600,18 +632,15 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
         print("⚠️ 2FA Enabled! Requesting OTP Code...");
         showOtpDialog(email);
       } else if (response.statusCode == 401) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Wrong credentials, please try again")),
-        );
+        showAwesomeNotification("Wrong credentials, please try again",
+            title: "❌ Login Failed");
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Server error: ${response.statusCode}")),
-        );
+        showAwesomeNotification("Server error: ${response.statusCode}",
+            title: "❌ Login Failed");
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error logging in. Check internet connection.")),
-      );
+      showAwesomeNotification(" Error logging in. Check internet connection.",
+          title: "❌ Login Failed");
     }
   }
 
@@ -650,10 +679,8 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
               onPressed: () async {
                 String otpCode = otpController.text.trim();
                 if (otpCode.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text("❌ Παρακαλώ εισάγετε τον κωδικό OTP!")),
-                  );
+                  showAwesomeNotification(" Παρακαλώ εισάγετε τον κωδικό OTP!",
+                      title: "❌ Login Failed");
                   return;
                 }
 
@@ -694,9 +721,8 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
           // Αποθήκευση του Token
           globalAccessToken = accessToken;
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("✅ 2FA Login Successful! Redirecting...")),
-          );
+          showAwesomeNotification("2FA Login Successful! Redirecting...",
+              title: "✅ Success");
 
           // Μετάβαση στην κεντρική οθόνη
           Future.delayed(Duration(seconds: 2), () {
@@ -708,25 +734,19 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
 
           return true;
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text("❌ 2FA Login failed: No access token received")),
-          );
+          showAwesomeNotification(" 2FA Login failed: No access token received",
+              title: "❌ Login Failed");
           return false;
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  "❌ 2FA Login failed! Server error: ${response.statusCode}")),
-        );
+        showAwesomeNotification(
+            "  2FA Login failed! Server error: ${response.statusCode}",
+            title: "❌ Login Failed");
         return false;
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text("❌ Error verifying 2FA. Check your connection.")),
-      );
+      showAwesomeNotification("Error verifying 2FA. Check your connection.",
+          title: "❌ Login Failed");
       return false;
     }
   }

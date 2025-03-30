@@ -33,6 +33,7 @@ void main() async {
   bool isDarkMode = await getThemePreference();
 
   // 🔹 Έλεγχος αν είναι η πρώτη εκκίνηση για τα notifications
+
   final prefs = await SharedPreferences.getInstance();
   final bool isFirstRun = prefs.getBool('isFirstRun') ?? true;
 
