@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:theatrical_plays/pages/user/EditProfileScreen.dart';
 import 'package:theatrical_plays/pages/user/UserImagesSection.dart';
 import 'package:theatrical_plays/pages/user/ImageUploadHandler.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'dart:convert';
 
 class UserProfileScreen extends StatefulWidget {
@@ -70,16 +71,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  void showSnackbarMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.redAccent,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
   Widget buildProfileScreen() {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
@@ -93,8 +84,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
     final imageUploadHandler = ImageUploadHandler(
       context: context,
-      showSnackbarMessage: showSnackbarMessage,
-      onImageUploaded: fetchUserData, // Ταιριάζει με Future<void>
+      onImageUploaded: fetchUserData,
     );
 
     return Padding(
@@ -138,8 +128,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           SizedBox(height: 20),
           UserImagesSection(
             userImages: userImages,
-            onImageUpdated: fetchUserData, // Ταιριάζει με Future<void>
-            showSnackbarMessage: showSnackbarMessage,
+            onImageUpdated: fetchUserData,
           ),
           SizedBox(height: 20),
           Center(
@@ -251,6 +240,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       youtubeUrl = linkController.text;
                     }
                   });
+                  await AwesomeNotifications().createNotification(
+                    content: NotificationContent(
+                      id: DateTime.now()
+                          .millisecondsSinceEpoch
+                          .remainder(100000),
+                      channelKey: 'basic_channel',
+                      title: 'Επιτυχία!',
+                      body: 'Το προφίλ $platform αποθηκεύτηκε!',
+                      notificationLayout: NotificationLayout.Default,
+                    ),
+                  );
                   Navigator.pop(dialogContext);
                 }
               },
@@ -293,6 +293,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 youtubeUrl = updatedData["youtubeUrl"] ?? youtubeUrl;
                 is2FAEnabled = updatedData["twoFactorEnabled"] ?? is2FAEnabled;
               });
+              await AwesomeNotifications().createNotification(
+                content: NotificationContent(
+                  id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+                  channelKey: 'basic_channel',
+                  title: 'Επιτυχία!',
+                  body: 'Το προφίλ ενημερώθηκε!',
+                  notificationLayout: NotificationLayout.Default,
+                ),
+              );
             }
           },
         ),

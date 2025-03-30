@@ -59,5 +59,12 @@
 	<string>Η εφαρμογή χρειάζεται πρόσβαση στην κάμερα για τη λήψη φωτογραφιών.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Η εφαρμογή χρειάζεται πρόσβαση στο μικρόφωνο για ηχογραφήσεις.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+  	<string>fetch</string>
+  	<string>remote-notification</string>
+	</array>
+	<key>FirebaseAppDelegateAutoRegister</key>
+	<false/>
 </dict>
 </plist>

@@ -4,16 +4,15 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:theatrical_plays/using/UserService.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 
 class ImageUploadHandler {
   final picker = ImagePicker();
-  final Function(BuildContext, String) showSnackbarMessage;
   final Future<void> Function() onImageUploaded;
   final BuildContext context;
 
   ImageUploadHandler({
     required this.context,
-    required this.showSnackbarMessage,
     required this.onImageUploaded,
   });
 
@@ -98,7 +97,18 @@ class ImageUploadHandler {
                   Navigator.pop(dialogContext);
                   _showPreviewDialog(null, imageUrl);
                 } else {
-                  showSnackbarMessage(context, "❌ Μη έγκυρο URL!");
+                  await AwesomeNotifications().createNotification(
+                    content: NotificationContent(
+                      id: DateTime.now()
+                          .millisecondsSinceEpoch
+                          .remainder(100000),
+                      channelKey: 'basic_channel',
+                      title: 'Σφάλμα',
+                      body: 'Μη έγκυρο URL!',
+                      notificationLayout: NotificationLayout.Default,
+                      color: Colors.red,
+                    ),
+                  );
                 }
               },
               child: Text("Συνέχεια"),
@@ -203,8 +213,18 @@ class ImageUploadHandler {
                   onPressed: () async {
                     String label = labelController.text.trim();
                     if (label.isEmpty) {
-                      showSnackbarMessage(
-                          context, "❌ Παρακαλώ εισάγετε ένα label!");
+                      await AwesomeNotifications().createNotification(
+                        content: NotificationContent(
+                          id: DateTime.now()
+                              .millisecondsSinceEpoch
+                              .remainder(100000),
+                          channelKey: 'basic_channel',
+                          title: 'Σφάλμα',
+                          body: 'Παρακαλώ εισάγετε ένα label!',
+                          notificationLayout: NotificationLayout.Default,
+                          color: Colors.red,
+                        ),
+                      );
                       return;
                     }
 
@@ -219,8 +239,17 @@ class ImageUploadHandler {
                     );
 
                     if (success) {
-                      showSnackbarMessage(context,
-                          "✅ Εικόνα προστέθηκε και αποθηκεύτηκε στο backend!");
+                      await AwesomeNotifications().createNotification(
+                        content: NotificationContent(
+                          id: DateTime.now()
+                              .millisecondsSinceEpoch
+                              .remainder(100000),
+                          channelKey: 'basic_channel',
+                          title: 'Επιτυχία!',
+                          body: 'Η εικόνα προστέθηκε στην βιβλιοθήκη σας!',
+                          notificationLayout: NotificationLayout.Default,
+                        ),
+                      );
                       await onImageUploaded(); // Ενημερώνει τη λίστα userImages
                       if (isProfile) {
                         // Βρίσκουμε το ID της τελευταίας εικόνας μετά το fetch
@@ -232,20 +261,59 @@ class ImageUploadHandler {
                               await UserService.updateProfilePhoto(
                                   latestImage['id']);
                           if (profileSuccess) {
-                            showSnackbarMessage(
-                                context, "✅ Η φωτογραφία ορίστηκε ως προφίλ!");
+                            await AwesomeNotifications().createNotification(
+                              content: NotificationContent(
+                                id: DateTime.now()
+                                    .millisecondsSinceEpoch
+                                    .remainder(100000),
+                                channelKey: 'basic_channel',
+                                title: 'Επιτυχία!',
+                                body: 'Η φωτογραφία ορίστηκε ως προφίλ!',
+                                notificationLayout: NotificationLayout.Default,
+                              ),
+                            );
                           } else {
-                            showSnackbarMessage(context,
-                                "❌ Αποτυχία ορισμού φωτογραφίας προφίλ!");
+                            await AwesomeNotifications().createNotification(
+                              content: NotificationContent(
+                                id: DateTime.now()
+                                    .millisecondsSinceEpoch
+                                    .remainder(100000),
+                                channelKey: 'basic_channel',
+                                title: 'Σφάλμα',
+                                body: 'Αποτυχία ορισμού φωτογραφίας προφίλ!',
+                                notificationLayout: NotificationLayout.Default,
+                                color: Colors.red,
+                              ),
+                            );
                           }
                         } else {
-                          showSnackbarMessage(context,
-                              "❌ Δεν βρέθηκε ID για την τελευταία εικόνα!");
+                          await AwesomeNotifications().createNotification(
+                            content: NotificationContent(
+                              id: DateTime.now()
+                                  .millisecondsSinceEpoch
+                                  .remainder(100000),
+                              channelKey: 'basic_channel',
+                              title: 'Σφάλμα',
+                              body: 'Δεν βρέθηκε ID για την τελευταία εικόνα!',
+                              notificationLayout: NotificationLayout.Default,
+                              color: Colors.red,
+                            ),
+                          );
                         }
                       }
                     } else {
-                      showSnackbarMessage(
-                          context, "❌ Αποτυχία αποστολής εικόνας!");
+                      await AwesomeNotifications().createNotification(
+                        content: NotificationContent(
+                          id: DateTime.now()
+                              .millisecondsSinceEpoch
+                              .remainder(100000),
+                          channelKey: 'basic_channel',
+                          title: 'Σφάλμα',
+                          body: 'Αποτυχία αποστολής εικόνας!',
+                          notificationLayout: NotificationLayout.Default,
+                          color: Colors.red,
+                        ),
+                      );
                     }
                   },
                   child: Text("Ανέβασμα"),

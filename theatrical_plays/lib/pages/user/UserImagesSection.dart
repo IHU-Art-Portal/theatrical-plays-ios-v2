@@ -2,18 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/UserService.dart';
 import 'package:theatrical_plays/pages/user/ImageViewerScreen.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'dart:convert';
 
 class UserImagesSection extends StatelessWidget {
   final List<Map<String, dynamic>> userImages;
   final Future<void> Function() onImageUpdated; // Ενημερωμένη υπογραφή
-  final Function(BuildContext, String) showSnackbarMessage;
 
   const UserImagesSection({
     Key? key,
     required this.userImages,
     required this.onImageUpdated,
-    required this.showSnackbarMessage,
   }) : super(key: key);
 
   @override
@@ -65,12 +64,31 @@ class UserImagesSection extends StatelessWidget {
                             userImages
                                 .forEach((img) => img['isProfile'] = false);
                             userImages[index]['isProfile'] = true;
-                            await onImageUpdated(); // Σωστή χρήση με await
-                            showSnackbarMessage(
-                                context, "✅ Η φωτογραφία ορίστηκε ως προφίλ!");
+                            await onImageUpdated();
+                            await AwesomeNotifications().createNotification(
+                              content: NotificationContent(
+                                id: DateTime.now()
+                                    .millisecondsSinceEpoch
+                                    .remainder(100000),
+                                channelKey: 'basic_channel',
+                                title: 'Επιτυχία!',
+                                body: 'Η φωτογραφία ορίστηκε ως προφίλ!',
+                                notificationLayout: NotificationLayout.Default,
+                              ),
+                            );
                           } else {
-                            showSnackbarMessage(context,
-                                "❌ Αποτυχία ορισμού φωτογραφίας προφίλ!");
+                            await AwesomeNotifications().createNotification(
+                              content: NotificationContent(
+                                id: DateTime.now()
+                                    .millisecondsSinceEpoch
+                                    .remainder(100000),
+                                channelKey: 'basic_channel',
+                                title: 'Σφάλμα',
+                                body: 'Αποτυχία ορισμού φωτογραφίας προφίλ!',
+                                notificationLayout: NotificationLayout.Default,
+                                color: Colors.red,
+                              ),
+                            );
                           }
                         },
                         onDelete: (imageId) async {
@@ -79,13 +97,32 @@ class UserImagesSection extends StatelessWidget {
                           if (success) {
                             userImages
                                 .removeWhere((img) => img['id'] == imageId);
-                            await onImageUpdated(); // Σωστή χρήση με await
-                            showSnackbarMessage(
-                                context, "✅ Η εικόνα διαγράφηκε!");
+                            await onImageUpdated();
+                            await AwesomeNotifications().createNotification(
+                              content: NotificationContent(
+                                id: DateTime.now()
+                                    .millisecondsSinceEpoch
+                                    .remainder(100000),
+                                channelKey: 'basic_channel',
+                                title: 'Επιτυχία!',
+                                body: 'Η εικόνα διαγράφηκε!',
+                                notificationLayout: NotificationLayout.Default,
+                              ),
+                            );
                             return true;
                           } else {
-                            showSnackbarMessage(
-                                context, "❌ Αποτυχία διαγραφής εικόνας!");
+                            await AwesomeNotifications().createNotification(
+                              content: NotificationContent(
+                                id: DateTime.now()
+                                    .millisecondsSinceEpoch
+                                    .remainder(100000),
+                                channelKey: 'basic_channel',
+                                title: 'Σφάλμα',
+                                body: 'Αποτυχία διαγραφής εικόνας!',
+                                notificationLayout: NotificationLayout.Default,
+                                color: Colors.red,
+                              ),
+                            );
                             return false;
                           }
                         },
@@ -145,12 +182,31 @@ class UserImagesSection extends StatelessWidget {
                                 .forEach((img) => img['isProfile'] = false);
                             userImages.firstWhere((img) => img['id'] == imageId,
                                 orElse: () => {})['isProfile'] = true;
-                            await onImageUpdated(); // Σωστή χρήση με await
-                            showSnackbarMessage(
-                                context, "✅ Η φωτογραφία ορίστηκε ως προφίλ!");
+                            await onImageUpdated();
+                            await AwesomeNotifications().createNotification(
+                              content: NotificationContent(
+                                id: DateTime.now()
+                                    .millisecondsSinceEpoch
+                                    .remainder(100000),
+                                channelKey: 'basic_channel',
+                                title: 'Επιτυχία!',
+                                body: 'Η φωτογραφία ορίστηκε ως προφίλ!',
+                                notificationLayout: NotificationLayout.Default,
+                              ),
+                            );
                           } else {
-                            showSnackbarMessage(context,
-                                "❌ Αποτυχία ορισμού φωτογραφίας προφίλ!");
+                            await AwesomeNotifications().createNotification(
+                              content: NotificationContent(
+                                id: DateTime.now()
+                                    .millisecondsSinceEpoch
+                                    .remainder(100000),
+                                channelKey: 'basic_channel',
+                                title: 'Σφάλμα',
+                                body: 'Αποτυχία ορισμού φωτογραφίας προφίλ!',
+                                notificationLayout: NotificationLayout.Default,
+                                color: Colors.red,
+                              ),
+                            );
                           }
                         },
                         onDelete: (imageId) async {
@@ -159,13 +215,32 @@ class UserImagesSection extends StatelessWidget {
                           if (success) {
                             userImages
                                 .removeWhere((img) => img['id'] == imageId);
-                            await onImageUpdated(); // Σωστή χρήση με await
-                            showSnackbarMessage(
-                                context, "✅ Η εικόνα διαγράφηκε!");
+                            await onImageUpdated();
+                            await AwesomeNotifications().createNotification(
+                              content: NotificationContent(
+                                id: DateTime.now()
+                                    .millisecondsSinceEpoch
+                                    .remainder(100000),
+                                channelKey: 'basic_channel',
+                                title: 'Επιτυχία!',
+                                body: 'Η εικόνα διαγράφηκε!',
+                                notificationLayout: NotificationLayout.Default,
+                              ),
+                            );
                             return true;
                           } else {
-                            showSnackbarMessage(
-                                context, "❌ Αποτυχία διαγραφής εικόνας!");
+                            await AwesomeNotifications().createNotification(
+                              content: NotificationContent(
+                                id: DateTime.now()
+                                    .millisecondsSinceEpoch
+                                    .remainder(100000),
+                                channelKey: 'basic_channel',
+                                title: 'Σφάλμα',
+                                body: 'Αποτυχία διαγραφής εικόνας!',
+                                notificationLayout: NotificationLayout.Default,
+                                color: Colors.red,
+                              ),
+                            );
                             return false;
                           }
                         },
