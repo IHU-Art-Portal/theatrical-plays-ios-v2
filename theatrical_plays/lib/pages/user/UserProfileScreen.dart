@@ -7,6 +7,8 @@ import 'package:theatrical_plays/pages/user/UserImagesSection.dart';
 import 'package:theatrical_plays/pages/user/ImageUploadHandler.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
+import 'package:http/http.dart' as http;
 
 class UserProfileScreen extends StatefulWidget {
   @override
@@ -71,104 +73,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  Widget buildProfileScreen() {
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-    final colors = isDarkMode ? MyColors.dark : MyColors.light;
-
-    Map<String, dynamic>? profileImage = userImages.firstWhere(
-      (image) => image['isProfile'] == true,
-      orElse: () => <String, dynamic>{},
-    );
-    if (profileImage.isEmpty) profileImage = null;
-
-    final imageUploadHandler = ImageUploadHandler(
-      context: context,
-      onImageUploaded: fetchUserData,
-    );
-
-    return Padding(
-      padding: EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 50,
-            backgroundImage: profileImage != null
-                ? (profileImage['url'].startsWith('http')
-                    ? NetworkImage(profileImage['url']) as ImageProvider<Object>
-                    : MemoryImage(base64Decode(profileImage['url']))
-                        as ImageProvider<Object>)
-                : NetworkImage(userData?["profilePictureUrl"] ??
-                        "https://www.gravatar.com/avatar/placeholder?d=mp")
-                    as ImageProvider<Object>,
-          ),
-          SizedBox(height: 20),
-          Text(
-            userData?["email"] ?? "Δεν υπάρχει email",
-            style: TextStyle(fontSize: 22, color: colors.primaryText),
-          ),
-          SizedBox(height: 5),
-          Text(
-            "Ρόλος: $userRole",
-            style: TextStyle(fontSize: 18, color: colors.secondaryText),
-          ),
-          SizedBox(height: 10),
-          Text(
-            "Credits: ${userCredits.toStringAsFixed(2)}",
-            style: TextStyle(
-                fontSize: 18,
-                color: colors.accent,
-                fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 20),
-          Divider(color: colors.secondaryText),
-          SizedBox(height: 20),
-          buildSocialMediaRow(),
-          SizedBox(height: 20),
-          UserImagesSection(
-            userImages: userImages,
-            onImageUpdated: fetchUserData,
-          ),
-          SizedBox(height: 20),
-          Center(
-            child: ElevatedButton(
-              onPressed: imageUploadHandler.showUploadOptions,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colors.accent,
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.upload, color: Colors.white),
-                  SizedBox(width: 8),
-                  Text("Ανέβασε Φωτογραφία",
-                      style: TextStyle(color: Colors.white)),
-                ],
-              ),
-            ),
-          ),
-          buildProfileActions(),
-        ],
+  void showAwesomeNotification(String body,
+      {String title = '🔔 Ειδοποίηση',
+      NotificationLayout layout = NotificationLayout.Default}) {
+    AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        channelKey: 'basic_channel',
+        title: title,
+        body: body,
+        notificationLayout: layout,
       ),
-    );
-  }
-
-  Widget buildSocialMediaRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        buildSocialButton("Facebook", facebookUrl, Icons.facebook, Colors.blue),
-        SizedBox(width: 20),
-        buildSocialButton(
-            "Instagram", instagramUrl, Icons.camera_alt, Colors.pink),
-        SizedBox(width: 20),
-        buildSocialButton(
-            "YouTube", youtubeUrl, Icons.play_circle_fill, Colors.red),
-      ],
     );
   }
 
@@ -260,6 +175,161 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           ],
         );
       },
+    );
+  }
+
+  Widget buildProfileScreen() {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
+    Map<String, dynamic>? profileImage = userImages.firstWhere(
+      (image) => image['isProfile'] == true,
+      orElse: () => <String, dynamic>{},
+    );
+    if (profileImage.isEmpty) profileImage = null;
+
+    final imageUploadHandler = ImageUploadHandler(
+      context: context,
+      onImageUploaded: fetchUserData,
+    );
+
+    return Padding(
+      padding: EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          CircleAvatar(
+            radius: 50,
+            backgroundImage: profileImage != null
+                ? (profileImage['url'].startsWith('http')
+                    ? NetworkImage(profileImage['url']) as ImageProvider<Object>
+                    : MemoryImage(base64Decode(profileImage['url']))
+                        as ImageProvider<Object>)
+                : NetworkImage(userData?["profilePictureUrl"] ??
+                        "https://www.gravatar.com/avatar/placeholder?d=mp")
+                    as ImageProvider<Object>,
+          ),
+          SizedBox(height: 20),
+          Text(
+            userData?["email"] ?? "Δεν υπάρχει email",
+            style: TextStyle(fontSize: 22, color: colors.primaryText),
+          ),
+          SizedBox(height: 5),
+          Text(
+            "Ρόλος: $userRole",
+            style: TextStyle(fontSize: 18, color: colors.secondaryText),
+          ),
+          SizedBox(height: 10),
+          Text(
+            "Credits: ${userCredits.toStringAsFixed(2)}",
+            style: TextStyle(
+                fontSize: 18,
+                color: colors.accent,
+                fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 20),
+          Divider(color: colors.secondaryText),
+          SizedBox(height: 20),
+          buildSocialMediaRow(),
+          SizedBox(height: 20),
+          UserImagesSection(
+            userImages: userImages,
+            onImageUpdated: fetchUserData,
+          ),
+          SizedBox(height: 20),
+          Center(
+            child: ElevatedButton(
+              onPressed: imageUploadHandler.showUploadOptions,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.accent,
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.upload, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text("Ανέβασε Φωτογραφία",
+                      style: TextStyle(color: Colors.white)),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 20),
+          Center(
+            child: ElevatedButton(
+              onPressed: uploadUserBioPdf,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.accent,
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.picture_as_pdf, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text("Ανέβασε Βιογραφικό",
+                      style: TextStyle(color: Colors.white)),
+                ],
+              ),
+            ),
+          ),
+          buildProfileActions(),
+        ],
+      ),
+    );
+  }
+
+  Future<void> uploadUserBioPdf() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+    );
+
+    if (result != null && result.files.single.bytes != null) {
+      final bytes = result.files.single.bytes!;
+      final base64Pdf = base64Encode(bytes);
+
+      final url = Uri.parse(
+          "https://your-api-url.com/api/User/Upload/Bio"); // Αντικατάστησε με το πραγματικό
+      final response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer YOUR_TOKEN", // Αν απαιτείται
+        },
+        body: jsonEncode({"userBioPdf": base64Pdf}),
+      );
+
+      if (response.statusCode == 200) {
+        showAwesomeNotification("Το βιογραφικό ανέβηκε επιτυχώς",
+            title: "✅ Επιτυχία");
+      } else {
+        showAwesomeNotification("Πρόβλημα κατά την αποστολή",
+            title: "⛔️ Σφάλμα");
+      }
+    } else {
+      showAwesomeNotification("Δεν επιλέχθηκε αρχείο", title: "❌ Αποτυχία");
+    }
+  }
+
+  Widget buildSocialMediaRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        buildSocialButton("Facebook", facebookUrl, Icons.facebook, Colors.blue),
+        SizedBox(width: 20),
+        buildSocialButton(
+            "Instagram", instagramUrl, Icons.camera_alt, Colors.pink),
+        SizedBox(width: 20),
+        buildSocialButton(
+            "YouTube", youtubeUrl, Icons.play_circle_fill, Colors.red),
+      ],
     );
   }
 

@@ -12,7 +12,7 @@ void main() async {
 
   // Αρχικοποίηση του AwesomeNotifications
   await AwesomeNotifications().initialize(
-    'resource://drawable/app_icon', // Το εικονίδιο της εφαρμογής σου (προαιρετικό)
+    'resource://drawable/app_icon',
     [
       NotificationChannel(
         channelKey: 'basic_channel',
@@ -20,19 +20,18 @@ void main() async {
         channelDescription: 'Κανάλι για βασικές ειδοποιήσεις',
         defaultColor: Colors.blue,
         ledColor: Colors.white,
-        importance:
-            NotificationImportance.High, // Υψηλή προτεραιότητα για iOS banner
+        importance: NotificationImportance.High,
         playSound: true,
         enableVibration: true,
       ),
     ],
-    debug: true, // Βοηθάει να δεις logs για debugging
+    debug: true,
   );
 
   // 🔹 Διαβάζει την αποθηκευμένη ρύθμιση Light/Dark Mode
   bool isDarkMode = await getThemePreference();
 
-  // 🔹 Έλεγχος αν είναι η πρώτη εκκίνηση για τα notifications
+  //  Έλεγχος αν είναι η πρώτη εκκίνηση για τα notifications
 
   final prefs = await SharedPreferences.getInstance();
   final bool isFirstRun = prefs.getBool('isFirstRun') ?? true;

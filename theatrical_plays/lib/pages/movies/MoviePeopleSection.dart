@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:theatrical_plays/models/RelatedActor.dart';
-import 'package:theatrical_plays/pages/actors/ActorInfo.dart';
+import 'package:theatrical_plays/pages/actors/ActorProfilePgae.dart';
 import 'package:theatrical_plays/using/AuthorizationStore.dart';
 import 'package:theatrical_plays/using/Constants.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
@@ -89,7 +89,8 @@ class _MoviePeopleSectionState extends State<MoviePeopleSection> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => ActorInfo(actor.id),
+                      builder: (context) =>
+                          ActorProfilePage(actor: actor.toActor()),
                     ),
                   );
                 },

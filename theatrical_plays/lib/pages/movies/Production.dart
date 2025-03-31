@@ -1,15 +1,23 @@
 class Production {
-  String role;
-  int productionId;
-  String title;
-  String ticketUrl;
-  String producer;
-  String mediaUrl;
-  String duration;
-  String description;
+  final String role;
+  final int id;
+  final String title;
+  final String ticketUrl;
+  final String producer;
+  final String mediaUrl;
+  final String duration;
+  final String description;
 
-  Production(this.role, this.productionId, this.title, this.ticketUrl,
-      this.producer, this.mediaUrl, this.duration, this.description);
+  Production(
+    this.role,
+    this.id,
+    this.title,
+    this.ticketUrl,
+    this.producer,
+    this.mediaUrl,
+    this.duration,
+    this.description,
+  );
 
   factory Production.fromJson(Map<String, dynamic> json,
       {required String role}) {

@@ -48,4 +48,18 @@ class RelatedActor extends Actor {
           : [],
     );
   }
+
+  Actor toActor() {
+    return Actor(
+      id: id,
+      fullName: fullName,
+      image: image,
+      birthdate: null,
+      height: null,
+      weight: null,
+      eyeColor: null,
+      hairColor: null,
+      bio: '',
+    );
+  }
 }
