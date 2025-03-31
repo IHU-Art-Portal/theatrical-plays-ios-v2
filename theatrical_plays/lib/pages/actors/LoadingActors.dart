@@ -55,6 +55,7 @@ class _LoadingActorsState extends State<LoadingActors> {
             eyeColor: oldActor['eyeColor'], // Προσθήκη χρώματος ματιών
             hairColor: oldActor['hairColor'], // Προσθήκη χρώματος μαλλιών
             bio: oldActor['bio'], // Προσθήκη βιογραφίας
+            isClaimed: oldActor['isClaimed'] ?? false,
             images: oldActor['images'] != null
                 ? List<String>.from(oldActor['images'].map(
                     (img) => img['imageUrl'])) // Μετατροπή εικόνων σε λίστα

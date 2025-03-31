@@ -14,6 +14,7 @@ class RelatedActor extends Actor {
     String? eyeColor,
     String? hairColor,
     String? bio,
+    required bool isClaimed,
     List<String> images = const [],
   }) : super(
           id: id,
@@ -26,9 +27,9 @@ class RelatedActor extends Actor {
           hairColor: hairColor,
           bio: bio,
           images: images,
+          isClaimed: isClaimed,
         );
 
-  // Factory method για δημιουργία RelatedActor από JSON
   factory RelatedActor.fromJson(Map<String, dynamic> json) {
     return RelatedActor(
       role: json['role'] ?? 'No role found',
@@ -38,11 +39,12 @@ class RelatedActor extends Actor {
           ? json['images'][0]['imageUrl']
           : 'https://www.macunepimedium.com/wp-content/uploads/2019/04/male-icon.jpg',
       birthdate: json['birthdate'],
-      height: json['height'],
-      weight: json['weight'],
+      height: (json['height'] as num?)?.toString(),
+      weight: (json['weight'] as num?)?.toString(),
       eyeColor: json['eyeColor'],
       hairColor: json['hairColor'],
       bio: json['bio'],
+      isClaimed: json['isClaimed'] ?? false,
       images: json['images'] != null
           ? List<String>.from(json['images'].map((img) => img['imageUrl']))
           : [],
@@ -54,12 +56,14 @@ class RelatedActor extends Actor {
       id: id,
       fullName: fullName,
       image: image,
-      birthdate: null,
-      height: null,
-      weight: null,
-      eyeColor: null,
-      hairColor: null,
-      bio: '',
+      birthdate: birthdate,
+      height: height,
+      weight: weight,
+      eyeColor: eyeColor,
+      hairColor: hairColor,
+      bio: bio,
+      images: images,
+      isClaimed: isClaimed,
     );
   }
 }

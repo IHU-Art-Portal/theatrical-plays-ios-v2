@@ -111,7 +111,10 @@ class _LoadingHomeScreenState extends State<LoadingHomeScreen> {
                 images: oldActor['images'] != null
                     ? List<String>.from(oldActor['images'].map(
                         (img) => img['imageUrl'])) // Μετατροπή εικόνων σε λίστα
-                    : [], // Αν δεν υπάρχουν εικόνες, δίνουμε κενή λίστα
+                    : [],
+                isClaimed: oldActor['isClaimed'] ?? false,
+
+                // Αν δεν υπάρχουν εικόνες, δίνουμε κενή λίστα
               );
 
               if (RegExp(

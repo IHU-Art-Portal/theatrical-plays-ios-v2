@@ -9,19 +9,20 @@ class Actor {
   final String? hairColor;
   final String? bio;
   final List<String> images; // Λίστα με όλες τις εικόνες του ηθοποιού
+  final bool isClaimed;
 
-  Actor({
-    required this.id,
-    required this.fullName,
-    required this.image,
-    this.birthdate,
-    this.height,
-    this.weight,
-    this.eyeColor,
-    this.hairColor,
-    this.bio,
-    this.images = const [], // Default κενή λίστα αν δεν υπάρχουν εικόνες
-  });
+  Actor(
+      {required this.id,
+      required this.fullName,
+      required this.image,
+      this.birthdate,
+      this.height,
+      this.weight,
+      this.eyeColor,
+      this.hairColor,
+      this.bio,
+      this.images = const [], // Default κενή λίστα αν δεν υπάρχουν εικόνες
+      required this.isClaimed});
 
   // Factory method για δημιουργία αντικειμένου `Actor` από JSON
   factory Actor.fromJson(Map<String, dynamic> json) {
@@ -43,7 +44,9 @@ class Actor {
       eyeColor: json['eyeColor'],
       hairColor: json['hairColor'],
       bio: json['bio'],
-      images: imagesList, // Αποθηκεύουμε όλες τις εικόνες στη λίστα
+      images: imagesList,
+      isClaimed:
+          json['isClaimed'] ?? false, // Αποθηκεύουμε όλες τις εικόνες στη λίστα
     );
   }
 }

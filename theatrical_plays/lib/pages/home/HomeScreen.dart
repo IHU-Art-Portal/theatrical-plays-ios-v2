@@ -108,6 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
             image: item['images']?.isNotEmpty == true
                 ? item['images'][0]['imageUrl']
                 : 'https://example.com/default-image.jpg',
+            isClaimed: item['isClaimed'] ?? false,
           ));
         }
         return actors;

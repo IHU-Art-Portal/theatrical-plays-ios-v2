@@ -35,8 +35,8 @@ class ActorHeaderWidget extends StatelessWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Colors.black.withOpacity(0.6),
-                Colors.black.withOpacity(0.9),
+                Colors.black.withOpacity(0.2),
+                Colors.black.withOpacity(0.8),
               ],
             ),
           ),
