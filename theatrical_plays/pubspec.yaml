@@ -71,8 +71,11 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-     - images/avatar.jpg
-     - .env
+    - images/avatar.jpg
+    - .env
+    - assets/test_files/test_cv_tp.pdf
+
+
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

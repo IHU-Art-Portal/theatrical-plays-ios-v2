@@ -13,6 +13,8 @@ import 'package:theatrical_plays/pages/actors/widgets/ActorHeaderWidget.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:theatrical_plays/using/globals.dart';
 
 class ActorProfilePage extends StatefulWidget {
   final Actor actor;
@@ -42,7 +44,7 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
           "http://${Constants().hostName}/api/people/${widget.actor.id}/productions");
 
       final response = await http.get(url, headers: {
-        "Authorization": token,
+        "Authorization": "Bearer $globalAccessToken",
         "Accept": "application/json",
       });
 
@@ -75,43 +77,45 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
 
   Future<void> claimActor() async {
     try {
-      final result = await FilePicker.platform.pickFiles(withData: true);
-      if (result == null || result.files.first.bytes == null) {
-        showAwesomeNotification("Δεν επιλέχθηκε αρχείο.");
-        return;
-      }
+      final fileBytes =
+          await rootBundle.load('assets/test_files/test_cv_tp.pdf');
+      final base64File = base64Encode(fileBytes.buffer.asUint8List());
 
-      final Uint8List fileBytes = result.files.first.bytes!;
-      final String base64Doc = base64Encode(fileBytes);
-
-      final token =
-          await AuthorizationStore.getStoreValue("authorization") ?? '';
       final url = Uri.parse(
           "http://${Constants().hostName}/api/AccountRequests/RequestAccount");
+      final token = await AuthorizationStore.getStoreValue("authorization");
+      print("🔑 TOKEN: $token");
+      final headers = {
+        "Accept": "application/json",
+        "Authorization": "Bearer $globalAccessToken",
+        "Content-Type": "application/json",
+      };
 
-      final response = await http.post(
-        url,
-        headers: {
-          "Authorization": "Bearer $token",
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-        body: jsonEncode({
-          "personId": widget.actor.id,
-          "identificationDocument": base64Doc,
-        }),
-      );
+      final body = jsonEncode({
+        "personId": widget.actor.id,
+        "identificationDocument": base64File,
+      });
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        setState(() {
-          isClaimed = true;
-        });
-        showAwesomeNotification("✅ Αίτημα claim εστάλη με επιτυχία!");
+      final response = await http.post(url, headers: headers, body: body);
+
+      if (response.statusCode == 200) {
+        print("✅ Claim sent successfully!");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Αίτημα διεκδίκησης στάλθηκε')),
+        );
       } else {
-        showAwesomeNotification("❌ Αποτυχία claim: ${response.statusCode}");
+        print("❌ Claim failed: ${response.statusCode}");
+        print("Response body: ${response.body}");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Αποτυχία διεκδίκησης: ${response.statusCode}')),
+        );
       }
     } catch (e) {
-      showAwesomeNotification("❌ Σφάλμα κατά την αποστολή: $e");
+      print("❌ Error while sending claim: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Σφάλμα κατά την αποστολή του αιτήματος')),
+      );
     }
   }
 
