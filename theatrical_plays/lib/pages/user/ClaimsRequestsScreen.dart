@@ -3,6 +3,7 @@ import 'package:theatrical_plays/models/AccountRequestDto.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/UserService.dart';
 import 'package:theatrical_plays/using/WebViewScreen.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 
 class ClaimsRequestsScreen extends StatefulWidget {
   @override
@@ -11,11 +12,17 @@ class ClaimsRequestsScreen extends StatefulWidget {
 
 class _ClaimsRequestsScreenState extends State<ClaimsRequestsScreen> {
   late Future<List<AccountRequestDto>> claimsFuture;
+  Map<String, dynamic>? currentUserData; // 👈 Πρόσθεσε αυτό
 
   @override
   void initState() {
     super.initState();
-    claimsFuture = UserService.getAllClaims(); // <-- Διορθώθηκε
+    claimsFuture = loadClaimsAndUser();
+  }
+
+  Future<List<AccountRequestDto>> loadClaimsAndUser() async {
+    currentUserData = await UserService.fetchUserProfile();
+    return await UserService.getAllClaims();
   }
 
   @override
@@ -48,29 +55,73 @@ class _ClaimsRequestsScreenState extends State<ClaimsRequestsScreen> {
             itemCount: claims.length,
             itemBuilder: (context, index) {
               final claim = claims[index];
+
+              // 👇 Υπολογισμός πριν το widget
+              final isCurrentUser = currentUserData != null &&
+                  currentUserData!["userId"] == claim.userId;
+
+              final username =
+                  isCurrentUser ? currentUserData!["username"] : null;
+
               return ListTile(
-                title: Text("Αιτών: ${claim.userEmail ?? 'Άγνωστος'}"),
+                title: Text(
+                  username != null && username.isNotEmpty
+                      ? "Αιτών: @$username"
+                      : (claim.userEmail != null
+                          ? "Αιτών: ${claim.userEmail}"
+                          : "Αιτών: Άγνωστος"),
+                ),
                 subtitle: Text(
-                    "Άτομο ID: ${claim.personId} | Κατάσταση: ${claim.status}"),
+                    "ID ηθοποιού: ${claim.personId} | Κατάσταση: ${claim.status}"),
                 trailing: Icon(Icons.description_outlined),
                 onTap: () {
                   if (claim.documentUrl != null) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => WebViewScreen(url: claim.documentUrl!),
+                        builder: (_) => WebViewScreen(
+                          url: claim.documentUrl!,
+                          onDecision: (String decision) async {
+                            if (decision == 'accept') {
+                              final success =
+                                  await UserService.approveClaim(claim.id!);
+                              if (success)
+                                showAwesomeNotification(
+                                    "Το αίτημα εγκρίθηκε ✅");
+                            } else if (decision == 'reject') {
+                              final success =
+                                  await UserService.rejectClaim(claim.id!);
+                              if (success)
+                                showAwesomeNotification(
+                                    "Το αίτημα απορρίφθηκε ❌");
+                            }
+                          },
+                        ),
                       ),
                     );
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Δεν υπάρχει αρχείο")),
-                    );
+                    showAwesomeNotification("Δεν υπάρχει αρχείο",
+                        title: "❌ Αποτυχία");
                   }
                 },
               );
             },
           );
         },
+      ),
+    );
+  }
+
+  void showAwesomeNotification(String body,
+      {String title = '🔔 Ειδοποίηση',
+      NotificationLayout layout = NotificationLayout.Default}) {
+    AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        channelKey: 'basic_channel',
+        title: title,
+        body: body,
+        notificationLayout: layout,
       ),
     );
   }

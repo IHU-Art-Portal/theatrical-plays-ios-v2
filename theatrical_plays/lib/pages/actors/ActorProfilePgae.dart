@@ -100,22 +100,18 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
 
       if (response.statusCode == 200) {
         print("✅ Claim sent successfully!");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Αίτημα διεκδίκησης στάλθηκε')),
-        );
+        showAwesomeNotification("Το αίτημα διεκδίκησης λογαριασμούς στάλθηκε",
+            title: "✅ Επιτυχία");
       } else {
         print("❌ Claim failed: ${response.statusCode}");
         print("Response body: ${response.body}");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Αποτυχία διεκδίκησης: ${response.statusCode}')),
-        );
+        showAwesomeNotification("Αποτυχία διεκδίκησης: ${response.statusCode}",
+            title: "❌ Αποτυχία");
       }
     } catch (e) {
       print("❌ Error while sending claim: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Σφάλμα κατά την αποστολή του αιτήματος')),
-      );
+      showAwesomeNotification("Σφάλμα κατά την αποστολή του αιτήματος",
+          title: "❌ Αποτυχία");
     }
   }
 

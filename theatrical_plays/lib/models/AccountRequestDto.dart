@@ -4,6 +4,8 @@ class AccountRequestDto {
   final String? status;
   final String? documentUrl;
   final String? userEmail;
+  final String? username;
+  final int? userId;
 
   AccountRequestDto({
     required this.id,
@@ -11,6 +13,8 @@ class AccountRequestDto {
     required this.status,
     this.documentUrl,
     this.userEmail,
+    this.username,
+    this.userId,
   });
 
   factory AccountRequestDto.fromJson(Map<String, dynamic> json) {
@@ -20,6 +24,8 @@ class AccountRequestDto {
       status: json['confirmationStatus'], // ← Εδώ ήταν το λάθος
       documentUrl: json['identificationDocument'], // ← Εδώ επίσης
       userEmail: json['userEmail'], // μπορεί να είναι null
+      username: json['username'],
+      userId: json['userId'],
     );
   }
 }

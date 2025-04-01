@@ -3,8 +3,9 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 class WebViewScreen extends StatefulWidget {
   final String url;
+  final void Function(String decision)? onDecision; // 👈 Νέο callback
 
-  WebViewScreen({required this.url});
+  WebViewScreen({required this.url, this.onDecision});
 
   @override
   _WebViewScreenState createState() => _WebViewScreenState();
@@ -16,8 +17,6 @@ class _WebViewScreenState extends State<WebViewScreen> {
   @override
   void initState() {
     super.initState();
-
-    // Αρχικοποιούμε το WebView και την πλατφόρμα του
     WebViewPlatform.instance;
     _controller = WebViewController();
   }
@@ -30,13 +29,39 @@ class _WebViewScreenState extends State<WebViewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Ολοκλήρωση Πληρωμής")),
+      appBar: AppBar(title: Text("Προβολή Αρχείου")),
       body: SafeArea(
         child: isUrlValid(widget.url)
             ? WebViewWidget(
                 controller: _controller..loadRequest(Uri.parse(widget.url)),
               )
             : Center(child: Text("❌ Πρόβλημα με τη φόρτωση της σελίδας.")),
+      ),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            ElevatedButton.icon(
+              onPressed: () {
+                if (widget.onDecision != null) widget.onDecision!("accept");
+                Navigator.pop(context);
+              },
+              icon: Icon(Icons.check),
+              label: Text("Αποδοχή"),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                if (widget.onDecision != null) widget.onDecision!("reject");
+                Navigator.pop(context);
+              },
+              icon: Icon(Icons.close),
+              label: Text("Απόρριψη"),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            ),
+          ],
+        ),
       ),
     );
   }

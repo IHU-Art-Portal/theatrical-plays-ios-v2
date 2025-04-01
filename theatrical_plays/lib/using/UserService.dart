@@ -572,4 +572,22 @@ class UserService {
 
     return response.statusCode == 200;
   }
+
+  static Future<bool> approveClaim(int requestId) async {
+    final uri = Uri.parse(
+        "http://${Constants().hostName}/api/AccountRequests/Approve/$requestId");
+    final res = await http.get(uri, headers: {
+      "Authorization": "Bearer $globalAccessToken",
+    });
+    return res.statusCode == 200;
+  }
+
+  static Future<bool> rejectClaim(int requestId) async {
+    final uri = Uri.parse(
+        "http://${Constants().hostName}/api/AccountRequests/Reject/$requestId");
+    final res = await http.get(uri, headers: {
+      "Authorization": "Bearer $globalAccessToken",
+    });
+    return res.statusCode == 200;
+  }
 }
