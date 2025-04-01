@@ -11,6 +11,7 @@ import 'package:theatrical_plays/pages/movies/LoadingMovies.dart';
 import 'package:theatrical_plays/pages/user/UserProfileScreen.dart';
 import 'package:theatrical_plays/using/globals.dart';
 import 'package:theatrical_plays/pages/user/PurchaseCreditsScreen.dart';
+import 'package:theatrical_plays/pages/user/ClaimsRequestsScreen.dart';
 import 'dart:convert';
 
 class Home extends StatefulWidget {
@@ -24,18 +25,47 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   SnakeShape snakeShape = SnakeShape.indicator;
   int _selectedItemPosition = 0;
+  String? userRole;
+  bool _isLoading = true;
 
-  final List<Widget> screens = [
-    LoadingHomeScreen(),
-    LoadingActors(),
-    LoadingMovies(),
-    LoadingTheaters()
-  ];
+  List<Widget> get screens {
+    List<Widget> baseScreens = [
+      LoadingHomeScreen(),
+      LoadingActors(),
+      LoadingMovies(),
+      LoadingTheaters(),
+    ];
+    if (userRole?.toLowerCase() == 'admin' ||
+        userRole?.toLowerCase() == 'claimsmanager') {
+      baseScreens.add(ClaimsRequestsScreen());
+    }
+    return baseScreens;
+  }
 
   final PageController controller = PageController(initialPage: 0);
 
   @override
+  void initState() {
+    super.initState();
+    _loadUserRole();
+  }
+
+  void _loadUserRole() async {
+    final profile = await UserService.fetchUserProfile();
+    print("🧠 Detected role: ${profile?['role']}");
+    setState(() {
+      userRole = profile?['role'];
+      _isLoading = false; // Τέλος φόρτωσης
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
     final colors = isDarkMode ? MyColors.dark : MyColors.light;
@@ -69,69 +99,85 @@ class _HomeState extends State<Home> {
                     MaterialPageRoute(
                         builder: (context) => PurchaseCreditsScreen()),
                   );
+                } else if (value == "claims") {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => ClaimsRequestsScreen()),
+                  );
                 }
               },
               color: colors.background,
-              itemBuilder: (BuildContext context) => [
-                PopupMenuItem(
-                  value: "credits",
-                  child: Row(
-                    children: [
-                      Icon(Icons.euro, color: Colors.orange, size: 20),
-                      SizedBox(width: 8),
-                      FutureBuilder<Map<String, dynamic>?>(
-                        future: UserService.fetchUserProfile(),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return Text("Loading...",
-                                style: TextStyle(color: colors.primaryText));
-                          } else if (snapshot.hasError ||
-                              snapshot.data == null) {
-                            return Text("Error",
-                                style: TextStyle(color: Colors.red));
-                          } else {
+              itemBuilder: (BuildContext context) {
+                final List<PopupMenuEntry<String>> items = [
+                  PopupMenuItem(
+                    value: "credits",
+                    child: Row(
+                      children: [
+                        Icon(Icons.euro, color: Colors.orange, size: 20),
+                        SizedBox(width: 8),
+                        FutureBuilder<Map<String, dynamic>?>(
+                          future: UserService.fetchUserProfile(),
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData) {
+                              return Text("...",
+                                  style: TextStyle(color: colors.primaryText));
+                            }
                             double credits = snapshot.data?['credits'] ?? 0.0;
                             return Text(
                               "Credits: ${credits.toStringAsFixed(2)} €",
                               style: TextStyle(
                                   color: colors.primaryText, fontSize: 16),
                             );
-                          }
-                        },
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: "profile",
+                    child: ListTile(
+                      leading: Icon(Icons.person, color: Colors.blue),
+                      title: Text("Προφίλ",
+                          style: TextStyle(color: colors.primaryText)),
+                    ),
+                  ),
+                ];
+
+                if (userRole?.toLowerCase().replaceAll(' ', '') == 'admin' ||
+                    userRole?.toLowerCase().replaceAll(' ', '') ==
+                        'claimsmanager') {
+                  items.add(
+                    PopupMenuItem(
+                      value: "claims",
+                      child: ListTile(
+                        leading: Icon(Icons.assignment_turned_in_outlined,
+                            color: Colors.green),
+                        title: Text("Claim Requests",
+                            style: TextStyle(color: colors.primaryText)),
                       ),
-                    ],
+                    ),
+                  );
+                }
+
+                items.add(
+                  PopupMenuItem(
+                    value: "logout",
+                    child: ListTile(
+                      leading: Icon(Icons.exit_to_app, color: Colors.red),
+                      title: Text("Αποσύνδεση",
+                          style: TextStyle(color: colors.primaryText)),
+                    ),
                   ),
-                ),
-                PopupMenuItem(
-                  value: "profile",
-                  child: ListTile(
-                    leading: Icon(Icons.person, color: Colors.blue),
-                    title: Text("Προφίλ",
-                        style: TextStyle(color: colors.primaryText)),
-                  ),
-                ),
-                PopupMenuItem(
-                  value: "logout",
-                  child: ListTile(
-                    leading: Icon(Icons.exit_to_app, color: Colors.red),
-                    title: Text("Αποσύνδεση",
-                        style: TextStyle(color: colors.primaryText)),
-                  ),
-                ),
-              ],
+                );
+
+                return items;
+              },
               child: FutureBuilder<Map<String, dynamic>?>(
                 future: UserService.fetchUserProfile(),
                 builder: (context, snapshot) {
                   String? profileImageUrl;
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    // Ενώ φορτώνει, δείχνουμε το placeholder
-                    profileImageUrl = null;
-                  } else if (snapshot.hasError || snapshot.data == null) {
-                    // Σε περίπτωση σφάλματος, πέφτουμε στο placeholder
-                    profileImageUrl = null;
-                  } else {
-                    // Βρίσκουμε τη φωτογραφία προφίλ από τη λίστα userImages
+                  if (snapshot.hasData) {
                     List<dynamic> userImages =
                         snapshot.data?['userImages'] ?? [];
                     Map<String, dynamic>? profileImage = userImages.firstWhere(
@@ -142,7 +188,6 @@ class _HomeState extends State<Home> {
                         ? profileImage['url']
                         : snapshot.data?['profilePhoto']?['imageLocation'];
                   }
-
                   return CircleAvatar(
                     radius: 20,
                     backgroundColor: Colors.grey[800],
@@ -178,7 +223,7 @@ class _HomeState extends State<Home> {
             controller.jumpToPage(index);
           });
         },
-        items: const [
+        items: [
           BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined), label: 'Home'),
           BottomNavigationBarItem(
@@ -186,7 +231,12 @@ class _HomeState extends State<Home> {
           BottomNavigationBarItem(
               icon: Icon(Icons.movie_outlined), label: 'Movies'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.theaters_outlined), label: 'Theaters')
+              icon: Icon(Icons.theaters_outlined), label: 'Theaters'),
+          if (userRole?.toLowerCase() == 'admin' ||
+              userRole?.toLowerCase() == 'claimsmanager')
+            BottomNavigationBarItem(
+                icon: Icon(Icons.assignment_turned_in_outlined),
+                label: 'Claims'),
         ],
         selectedLabelStyle: const TextStyle(fontSize: 14),
         unselectedLabelStyle: const TextStyle(fontSize: 10),
@@ -227,20 +277,24 @@ class _HomeState extends State<Home> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Αποσύνδεση"),
-          content: Text("Είστε σίγουρος ότι θέλετε να αποσυνδεθείτε;"),
+          title: Text(
+              "\u0391\u03c0\u03bf\u03c3\u03cd\u03bd\u03b4\u03b5\u03c3\u03b7"),
+          content: Text(
+              "\u0395\u03af\u03c3\u03c4\u03b5 \u03c3\u03af\u03b3\u03bf\u03c5\u03c1\u03bf\u03c2 \u03cc\u03c4\u03b9 \u03b8\u03ad\u03bb\u03b5\u03c4\u03b5 \u03bd\u03b1 \u03b1\u03c0\u03bf\u03c3\u03c5\u03bd\u03b4\u03b5\u03b8\u03b5\u03af\u03c4\u03b5;"),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text("Ακύρωση"),
+              child: Text("\u0391\u03ba\u03cd\u03c1\u03c9\u03c3\u03b7"),
             ),
             TextButton(
               onPressed: () {
                 logout();
               },
-              child: Text("Αποσύνδεση", style: TextStyle(color: Colors.red)),
+              child: Text(
+                  "\u0391\u03c0\u03bf\u03c3\u03cd\u03bd\u03b4\u03b5\u03c3\u03b7",
+                  style: TextStyle(color: Colors.red)),
             ),
           ],
         );

@@ -5,6 +5,8 @@ import 'package:theatrical_plays/using/globals.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:io';
+import 'package:theatrical_plays/models/AccountRequestDto.dart';
+import 'package:theatrical_plays/using/AuthorizationStore.dart';
 
 class UserService {
   static String? lastResponseBody; // Για debugging
@@ -519,6 +521,38 @@ class UserService {
     } catch (e) {
       print("❌ Σφάλμα κατά τη διαγραφή εικόνας: $e");
       return false;
+    }
+  }
+
+  static Future<List<AccountRequestDto>> getAllClaims() async {
+    try {
+      final token = globalAccessToken;
+
+      if (token == null) {
+        throw Exception("❌ Δεν υπάρχει διαθέσιμο JWT token.");
+      }
+
+      final uri = Uri.parse(
+          "http://${Constants().hostName}/api/AccountRequests/ClaimsManagers");
+
+      final res = await http.get(uri, headers: {
+        "Authorization": "Bearer $token",
+        "Accept": "application/json",
+      });
+
+      print("📩 Claims API responded with status ${res.statusCode}");
+      print("📩 Body: ${res.body}");
+
+      if (res.statusCode == 200) {
+        final json = jsonDecode(res.body);
+        final List<dynamic> data = json['data']; // <-- παίρνουμε το "data"
+        return data.map((e) => AccountRequestDto.fromJson(e)).toList();
+      } else {
+        throw Exception("Failed to fetch claims (${res.statusCode})");
+      }
+    } catch (e) {
+      print("❌ Exception in getAllClaims(): $e");
+      rethrow;
     }
   }
 }
