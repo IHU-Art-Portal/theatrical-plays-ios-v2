@@ -62,7 +62,7 @@ class _MoviesState extends State<Movies> {
                         backgroundColor: Colors.white,
                         backgroundImage: NetworkImage(
                           movies[index].mediaUrl ??
-                              'https://default-url.jpg', // Handle nullable mediaUrl
+                              'https://via.placeholder.com/150', // Handle nullable mediaUrl
                         ),
                       ),
                     ),

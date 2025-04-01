@@ -4,7 +4,11 @@ import 'package:theatrical_plays/models/Movie.dart';
 import 'package:theatrical_plays/models/Theater.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:http/http.dart' as http;
+import 'package:theatrical_plays/pages/home/widgets/actor_card.dart';
+import 'package:theatrical_plays/pages/home/widgets/theater_card.dart';
+import 'package:theatrical_plays/pages/home/widgets/movie_card.dart';
 import 'package:theatrical_plays/using/AuthorizationStore.dart';
+
 import 'dart:convert';
 import 'dart:math';
 
@@ -38,11 +42,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: colors.background,
-        elevation: 0,
-        title: Text(" Αρχική", style: TextStyle(color: theme.primaryColor)),
-      ),
       body: FutureBuilder<List<dynamic>>(
         future: futureData,
         builder: (context, snapshot) {
@@ -61,19 +60,83 @@ class _HomeScreenState extends State<HomeScreen> {
             List<Movie> randomMovies = getRandomItems(movies, 3);
             List<Theater> randomTheaters = getRandomItems(theaters, 3);
 
-            return Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                buildCategorySection("Actors", randomActors, buildActorTile),
-                Divider(color: theme.dividerColor),
-                buildCategorySection("Movies", randomMovies, buildMovieTile),
-                Divider(color: theme.dividerColor),
-                buildCategorySection(
-                    "Theaters", randomTheaters, buildTheaterTile),
-              ],
+            return SafeArea(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    buildCategorySection(
+                      "Actors",
+                      randomActors,
+                      (context, actor) => ActorCard(actor: actor as Actor),
+                    ),
+                    Divider(),
+                    buildCategorySection(
+                      "Movies",
+                      randomMovies,
+                      (context, movie) => MovieCard(movie: movie as Movie),
+                    ),
+                    Divider(),
+                    buildCategorySection(
+                      "Theaters",
+                      randomTheaters,
+                      (context, theater) =>
+                          TheaterCard(theater: theater as Theater),
+                    ),
+                    SizedBox(height: 24),
+                  ],
+                ),
+              ),
             );
           }
         },
+      ),
+    );
+  }
+
+  Widget buildCategorySection<T>(
+    String title,
+    List<T> items,
+    Widget Function(BuildContext, T) itemBuilder,
+  ) {
+    final isFewItems = items.length <= 3;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              title,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 150,
+            child: isFewItems
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: items
+                        .map((item) => Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 6),
+                              child: itemBuilder(context, item),
+                            ))
+                        .toList(),
+                  )
+                : ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 10),
+                    itemBuilder: (context, index) =>
+                        itemBuilder(context, items[index] as T),
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -217,23 +280,4 @@ class _HomeScreenState extends State<HomeScreen> {
           Text(theater.title, textAlign: TextAlign.center),
         ],
       );
-
-  Widget buildCategorySection<T>(String title, List<T> items,
-      Widget Function(BuildContext, T) itemBuilder) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text(title,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: items
-              .map((item) => Flexible(child: itemBuilder(context, item)))
-              .toList(),
-        ),
-      ],
-    );
-  }
 }

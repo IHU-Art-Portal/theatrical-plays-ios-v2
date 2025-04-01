@@ -24,7 +24,6 @@ class Actor {
       this.images = const [], // Default κενή λίστα αν δεν υπάρχουν εικόνες
       required this.isClaimed});
 
-  // Factory method για δημιουργία αντικειμένου `Actor` από JSON
   factory Actor.fromJson(Map<String, dynamic> json) {
     List<String> imagesList = [];
     if (json['images'] != null) {
@@ -32,12 +31,18 @@ class Actor {
           List<String>.from(json['images'].map((img) => img['imageUrl']));
     }
 
+    // Παίρνουμε το πρώτο URL αν είναι έγκυρο, αλλιώς βάζουμε κενό
+    String firstImage = (imagesList.isNotEmpty &&
+            imagesList[0] != null &&
+            imagesList[0].toString().isNotEmpty &&
+            !imagesList[0].toString().contains("example.com"))
+        ? imagesList[0]
+        : '';
+
     return Actor(
       id: json['id'] ?? 0,
       fullName: json['fullname'] ?? 'Άγνωστο Όνομα',
-      image: imagesList.isNotEmpty
-          ? imagesList[0] // Επιλέγουμε την πρώτη εικόνα από τη λίστα
-          : 'https://www.macunepimedium.com/wp-content/uploads/2019/04/male-icon.jpg', // Default εικόνα
+      image: firstImage, // <-- βάζουμε '' αν δεν έχει usable image
       birthdate: json['birthdate'],
       height: json['height'],
       weight: json['weight'],
@@ -45,8 +50,7 @@ class Actor {
       hairColor: json['hairColor'],
       bio: json['bio'],
       images: imagesList,
-      isClaimed:
-          json['isClaimed'] ?? false, // Αποθηκεύουμε όλες τις εικόνες στη λίστα
+      isClaimed: json['isClaimed'] ?? false,
     );
   }
 }
