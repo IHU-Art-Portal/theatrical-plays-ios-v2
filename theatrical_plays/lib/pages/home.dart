@@ -35,8 +35,7 @@ class _HomeState extends State<Home> {
       LoadingMovies(),
       LoadingTheaters(),
     ];
-    if (userRole?.toLowerCase() == 'admin' ||
-        userRole?.toLowerCase() == 'claimsmanager') {
+    if (userRole?.toLowerCase() == 'claimsmanager') {
       baseScreens.add(ClaimsRequestsScreen());
     }
     return baseScreens;
@@ -144,9 +143,8 @@ class _HomeState extends State<Home> {
                   ),
                 ];
 
-                if (userRole?.toLowerCase().replaceAll(' ', '') == 'admin' ||
-                    userRole?.toLowerCase().replaceAll(' ', '') ==
-                        'claimsmanager') {
+                if (userRole?.toLowerCase().replaceAll(' ', '') ==
+                    'claimsmanager') {
                   items.add(
                     PopupMenuItem(
                       value: "claims",
@@ -232,8 +230,7 @@ class _HomeState extends State<Home> {
               icon: Icon(Icons.movie_outlined), label: 'Movies'),
           BottomNavigationBarItem(
               icon: Icon(Icons.theaters_outlined), label: 'Theaters'),
-          if (userRole?.toLowerCase() == 'admin' ||
-              userRole?.toLowerCase() == 'claimsmanager')
+          if (userRole?.toLowerCase() == 'claimsmanager')
             BottomNavigationBarItem(
                 icon: Icon(Icons.assignment_turned_in_outlined),
                 label: 'Claims'),

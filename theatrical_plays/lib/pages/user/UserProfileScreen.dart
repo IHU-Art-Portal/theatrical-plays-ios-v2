@@ -25,6 +25,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String instagramUrl = "";
   String youtubeUrl = "";
   bool is2FAEnabled = false;
+  String username = "";
   List<Map<String, dynamic>> userImages = [];
 
   @override
@@ -35,6 +36,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> fetchUserData() async {
     var data = await UserService.fetchUserProfile();
+    print("🔍 USER PROFILE API RESPONSE: $data");
 
     if (data != null) {
       setState(() {
@@ -47,6 +49,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         userEmail = data["email"] ?? "Δεν υπάρχει email";
         userRole = data["role"] ?? "Χωρίς ρόλο";
         userCredits = data["credits"] ?? 0.0;
+        username = data["username"] ?? "";
 
         if (data["userImages"] != null && data["userImages"].isNotEmpty) {
           userImages = List<Map<String, dynamic>>.from(
@@ -211,14 +214,30 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     as ImageProvider<Object>,
           ),
           SizedBox(height: 20),
-          Text(
-            userData?["email"] ?? "Δεν υπάρχει email",
-            style: TextStyle(fontSize: 22, color: colors.primaryText),
-          ),
+          username.isNotEmpty
+              ? Text(
+                  "@$username",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: colors.accent,
+                  ),
+                )
+              : Text(
+                  "⚠️ Δεν έχει οριστεί username",
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.orange,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
           SizedBox(height: 5),
           Text(
-            "Ρόλος: $userRole",
-            style: TextStyle(fontSize: 18, color: colors.secondaryText),
+            userData?["email"] ?? "Δεν υπάρχει email",
+            style: TextStyle(
+              fontSize: 16, // 👈 πιο μικρό από το default
+              color: colors.primaryText,
+            ),
           ),
           SizedBox(height: 10),
           Text(
@@ -356,13 +375,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ),
               ),
             );
+
             if (updatedData != null) {
+              await fetchUserData(); // 👈 κάνε refresh για να φέρεις και το username
+
               setState(() {
                 facebookUrl = updatedData["facebookUrl"] ?? facebookUrl;
                 instagramUrl = updatedData["instagramUrl"] ?? instagramUrl;
                 youtubeUrl = updatedData["youtubeUrl"] ?? youtubeUrl;
                 is2FAEnabled = updatedData["twoFactorEnabled"] ?? is2FAEnabled;
               });
+
               await AwesomeNotifications().createNotification(
                 content: NotificationContent(
                   id: DateTime.now().millisecondsSinceEpoch.remainder(100000),

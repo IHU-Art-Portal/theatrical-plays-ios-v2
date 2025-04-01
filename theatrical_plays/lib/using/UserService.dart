@@ -54,6 +54,7 @@ class UserService {
           "phoneVerified": jsonData['data']["phoneVerified"] ?? false,
           "userImages": images, // ✅ Επιστρέφουμε τις φωτογραφίες του χρήστη
           "profilePhoto": jsonData['data']["profilePhoto"] ?? {},
+          "username": jsonData['data']["username"] ?? "",
         };
       } else {
         print("❌ Σφάλμα στο API: ${response.statusCode}");
@@ -554,5 +555,21 @@ class UserService {
       print("❌ Exception in getAllClaims(): $e");
       rethrow;
     }
+  }
+
+  static Future<bool> updateUsername(String username) async {
+    if (globalAccessToken == null) return false;
+
+    final uri = Uri.parse(
+        "http://${Constants().hostName}/api/User/Update/Username/$username");
+
+    final response = await http.put(
+      uri,
+      headers: {
+        "Authorization": "Bearer $globalAccessToken",
+      },
+    );
+
+    return response.statusCode == 200;
   }
 }

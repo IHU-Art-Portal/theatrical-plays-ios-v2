@@ -4,6 +4,7 @@ import 'package:theatrical_plays/using/UserService.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:theatrical_plays/main.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final String facebookUrl;
@@ -26,6 +27,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   TextEditingController facebookController = TextEditingController();
   TextEditingController instagramController = TextEditingController();
   TextEditingController youtubeController = TextEditingController();
+  TextEditingController usernameController = TextEditingController();
 
   bool isEditingFacebook = false;
   bool isEditingInstagram = false;
@@ -33,6 +35,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String profilePictureUrl = "";
   bool is2FAEnabled = false;
   bool isDarkMode = false;
+  bool isEditingUsername = false;
+
   // String phoneNumber = ""; // ✅ Κρατάει τον αριθμό τηλεφώνου του χρήστη
   bool phoneVerified = false; // ✅ Δείχνει αν το τηλέφωνο είναι verified
   double balance = 0.0; // ✅ Διατηρούμε το υπόλοιπο του χρήστη
@@ -77,6 +81,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         phoneVerified =
             profileData["phoneVerified"] ?? false; // ✅ Φόρτωση από το API
         balance = profileData["credits"] ?? 0.0;
+        usernameController.text = profileData["username"] ?? "";
 
         // ✅ Ανάθεση σωστής τιμής στο phoneNumber με ISO code
         phoneNumber = profileData["phoneNumber"] ?? "";
@@ -99,17 +104,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       success = await UserService.updateSocialMedia(
           "youtube", youtubeController.text);
     }
+    if (isEditingUsername && usernameController.text.isNotEmpty) {
+      success = await UserService.updateUsername(usernameController.text);
+    }
 
     if (success) {
       fetchUserProfile(); // 🔹 Φόρτωση των νέων δεδομένων από το API
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("✅ Το προφίλ ενημερώθηκε!"),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      showAwesomeNotification("Το προφίλ ενημερώθηκε", title: "✅ Επιτυχία");
 
       Navigator.pop(context, {
         "facebookUrl": facebookController.text,
@@ -118,13 +120,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         "twoFactorEnabled": is2FAEnabled, // ✅ Επιστρέφουμε το 2FA status
       });
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("❌ Αποτυχία ενημέρωσης προφίλ!"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      showAwesomeNotification("Το προφίλ δεν ενημερώθηκε", title: "❌ Αποτυχία");
     }
   }
 
@@ -149,6 +145,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         padding: EdgeInsets.all(16.0),
         child: Column(
           children: [
+            buildUsernameField(),
+            SizedBox(height: 10),
             buildSocialField("Facebook", facebookController, isEditingFacebook,
                 () {
               setState(() => isEditingFacebook = !isEditingFacebook);
@@ -286,6 +284,53 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  Widget buildUsernameField() {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+
+    return Row(
+      children: [
+        Expanded(
+          child: isEditingUsername
+              ? TextField(
+                  controller: usernameController,
+                  style: TextStyle(color: colors.primaryText),
+                  decoration: InputDecoration(
+                    labelText: "Username",
+                    labelStyle: TextStyle(color: colors.accent),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: colors.accent),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: colors.accent),
+                    ),
+                  ),
+                )
+              : Row(
+                  children: [
+                    Icon(Icons.person, color: Colors.blue),
+                    SizedBox(width: 10),
+                    Text(
+                      usernameController.text.isNotEmpty
+                          ? "Username: ${usernameController.text}"
+                          : "Δεν έχει οριστεί username",
+                      style: TextStyle(color: colors.primaryText, fontSize: 16),
+                    ),
+                    SizedBox(width: 10),
+                    IconButton(
+                      icon: Icon(Icons.edit, color: colors.accent),
+                      onPressed: () => setState(() {
+                        isEditingUsername = !isEditingUsername;
+                      }),
+                    ),
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
+
   /// ✅ Αν το social δεν έχει URL, δείχνει `"Δεν έχει προστεθεί"`
   Widget buildSocialField(String label, TextEditingController controller,
       bool isEditing, VoidCallback onEditToggle) {
@@ -354,21 +399,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (success) {
       fetchUserProfile(); // 🔹 Ξαναφορτώνουμε τα social links από το API
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("✅ Το $platform διαγράφηκε!"),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      showAwesomeNotification("Το $platform διαγράφηκε", title: "❌ Αποτυχία");
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("❌ Αποτυχία διαγραφής του $platform!"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      showAwesomeNotification("Αποτυχία διαγραφής του $platform!",
+          title: "❌ Αποτυχία");
     }
   }
 
@@ -447,21 +481,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       phoneController.text = formattedPhone; // ✅ UI ενημέρωση
                     });
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("✅ Το τηλέφωνο αποθηκεύτηκε!"),
-                        backgroundColor: Colors.green,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
+                    showAwesomeNotification("Το τηλέφωνο αποθηκεύτηκε",
+                        title: "✅ Επιτυχία");
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("❌ Αποτυχία αποθήκευσης τηλεφώνου!"),
-                        backgroundColor: Colors.red,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
+                    showAwesomeNotification("Το τηλέφωνο δεν αποθηκεύτηκε",
+                        title: "❌ Αποτυχία");
                   }
                 } else {
                   Navigator.pop(context);
@@ -479,13 +503,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void promptForPhoneVerification() {
     if (balance < 10) {
       // Έλεγχος αν υπάρχουν αρκετά credits
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("❌ Δεν έχετε αρκετά credits για την επιβεβαίωση!"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      showAwesomeNotification(
+          "Το υπόποιπό σας δεν είναι επαρκές για επιβεβαίωση",
+          title: "❌ Αποτυχία");
       return;
     }
 
@@ -513,13 +533,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   showOtpPrompt();
                 } else {
                   print("❌ Αποτυχία αποστολής OTP μέσω API!");
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("❌ Αποτυχία αποστολής OTP!"),
-                      backgroundColor: Colors.red,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
+                  showAwesomeNotification("Αποτυχία αποστολής OTP!",
+                      title: "❌ Αποτυχία");
                 }
               },
               child: Text("Ναι, συνέχισε"),
@@ -540,21 +555,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         phoneVerified = false; // ✅ Μηδενίζουμε το phoneVerified
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("✅ Το τηλέφωνο διαγράφηκε!"),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      showAwesomeNotification("Το τηλέφωνο διαγράφηκε!", title: "✅ Επιτυχία");
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("❌ Αποτυχία διαγραφής τηλεφώνου!"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      showAwesomeNotification("Το τηλέφωνο δεν διαγράφηκε",
+          title: "❌ Αποτυχία");
     }
   }
 
@@ -588,21 +592,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       balance -= 10; // Αφαίρεση 10 credits
                     });
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("✅ Το τηλέφωνο επιβεβαιώθηκε!"),
-                        backgroundColor: Colors.green,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
+                    showAwesomeNotification("Το τηλέφωνο επιβεβαιώθηκε",
+                        title: "✅ Επιτυχία");
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("❌ Λάθος OTP! Προσπαθήστε ξανά."),
-                        backgroundColor: Colors.red,
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
+                    showAwesomeNotification("Λάθος OTP. Προσπαθήστε ξανά.",
+                        title: "❌ Αποτυχία");
                   }
                 }
               },
@@ -617,5 +611,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<bool> getThemePreference() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getBool("themeMode") ?? false;
+  }
+
+  void showAwesomeNotification(String body,
+      {String title = '🔔 Ειδοποίηση',
+      NotificationLayout layout = NotificationLayout.Default}) {
+    AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        channelKey: 'basic_channel',
+        title: title,
+        body: body,
+        notificationLayout: layout,
+      ),
+    );
   }
 }
