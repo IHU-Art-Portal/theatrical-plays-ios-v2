@@ -44,6 +44,9 @@ dependencies:
   awesome_notifications: ^0.9.3+1
   file_picker: ^6.1.1
   glassmorphism: ^2.0.0
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  flutter_typeahead: ^4.6.2
 
 flutter_icons:
   android: true
@@ -77,6 +80,7 @@ flutter:
     - assets/test_files/test_cv_tp.pdf
     - assets/test_files/default_theater.png
     - assets/test_files/default_actor.png
+    - assets/test_files/no-image.png
 
 
 

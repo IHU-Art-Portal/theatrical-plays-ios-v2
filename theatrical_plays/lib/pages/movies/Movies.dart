@@ -1,14 +1,19 @@
-import 'package:flutter/cupertino.dart';
+// Movies.dart
 import 'package:flutter/material.dart';
 import 'package:theatrical_plays/models/Movie.dart';
 import 'package:theatrical_plays/pages/movies/MovieInfo.dart';
+import 'package:theatrical_plays/pages/movies/MovieGrid.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
-import 'package:theatrical_plays/using/SearchWidget.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:theatrical_plays/using/Constants.dart';
+import 'package:theatrical_plays/using/AuthorizationStore.dart';
 
 import 'CompareMovies.dart';
 
 class Movies extends StatefulWidget {
-  final List<Movie> movies; // Marked as final and non-nullable
+  final List<Movie> movies;
   Movies(this.movies);
 
   @override
@@ -16,171 +21,244 @@ class Movies extends StatefulWidget {
 }
 
 class _MoviesState extends State<Movies> {
-  late final List<Movie> movies; // Marked as final and non-nullable
+  List<Movie> movies = [];
   _MoviesState({required this.movies});
 
-  late List<Movie>
-      moviesToSearch; // Declared as late since it’s initialized in initState
-  String query = '';
+  late List<Movie> moviesToSearch;
   List<Movie> selectedMovies = [];
+  String? selectedVenue;
+  DateTime? selectedDate;
+  bool showFilters = false;
+  List<String> venues = [];
 
   @override
   void initState() {
-    moviesToSearch = List.from(movies); // Initializing moviesToSearch
     super.initState();
+    moviesToSearch = List.from(movies);
+    fetchVenues();
+  }
+
+  Future<void> fetchVenues() async {
+    try {
+      final uri = Uri.parse(
+          'http://${Constants().hostName}/api/Venues?page=1&size=100');
+      final headers = {
+        "Accept": "application/json",
+        "authorization":
+            "${await AuthorizationStore.getStoreValue("authorization")}"
+      };
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final List<dynamic> results = json['data']['results'];
+
+        setState(() {
+          venues = results
+              .map((v) => v['title']?.toString() ?? '')
+              .where((v) => v.isNotEmpty)
+              .toSet()
+              .toList();
+        });
+      } else {
+        print("📛 Venue fetch failed: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ Exception in fetchVenues: $e");
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+    final colors = Theme.of(context).brightness == Brightness.dark
+        ? MyColors.dark
+        : MyColors.light;
 
     return Scaffold(
       backgroundColor: colors.background,
-      body: Container(
-        child: Column(
-          children: [
-            buildSearch(),
-            Expanded(
-              child: ListView.builder(
-                itemCount: movies.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        CupertinoPageRoute(
-                          builder: (context) => MovieInfo(movies[index].id),
-                        ),
-                      );
-                    },
-                    leading: Padding(
-                      padding: const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
-                      child: CircleAvatar(
-                        radius: 30.0,
-                        backgroundColor: Colors.white,
-                        backgroundImage: NetworkImage(
-                          movies[index].mediaUrl ??
-                              'https://via.placeholder.com/150', // Handle nullable mediaUrl
-                        ),
-                      ),
-                    ),
-                    title: Text(
-                      movies[index].title,
-                      style: TextStyle(color: colors.accent),
-                    ),
-                    subtitle: Text(
-                      "Duration: ${movies[index].duration ?? 'N/A'}", // Handle nullable duration
-                      style: TextStyle(color: colors.primaryText),
-                    ),
-                    trailing: movies[index].isSelected
-                        ? Icon(
-                            Icons.check_circle,
-                            color: colors.accent,
-                          )
-                        : Icon(
-                            Icons.check_circle_outline,
-                            color: colors.secondaryText,
-                          ),
-                    onLongPress: () {
-                      setState(() {
-                        movies[index].isSelected = !movies[index].isSelected;
-                        if (movies[index].isSelected) {
-                          selectedMovies.add(movies[index]);
-                        } else {
-                          selectedMovies.removeWhere(
-                              (element) => element.id == movies[index].id);
-                        }
-                      });
-                    },
-                  );
-                },
+      body: Column(
+        children: [
+          buildSearch(),
+          buildFilterToggle(colors),
+          if (showFilters) buildFilters(colors),
+          Expanded(child: MovieGrid(movies: movies)),
+          if (selectedMovies.isNotEmpty) buildSelectionActions(colors),
+        ],
+      ),
+    );
+  }
+
+  Widget buildSearch() {
+    final colors = Theme.of(context).brightness == Brightness.dark
+        ? MyColors.dark
+        : MyColors.light;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: SizedBox(
+        width: screenWidth > 500 ? 450 : screenWidth * 0.95,
+        child: TypeAheadField<Movie>(
+          suggestionsBoxDecoration: SuggestionsBoxDecoration(
+            constraints: BoxConstraints(maxHeight: 220),
+            color: colors.background,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textFieldConfiguration: TextFieldConfiguration(
+            decoration: InputDecoration(
+              hintText: 'Αναζήτηση παράστασης',
+              prefixIcon: Icon(Icons.search, color: colors.accent),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
+              filled: true,
+              fillColor: colors.background,
             ),
-            if (selectedMovies.isNotEmpty)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
-                child: Column(
-                  children: [
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                            // backgroundColor: MyColors().gray, // Set the background color of the button
-                            ),
-                        child: Text(
-                          "Compare ticket prices (${selectedMovies.length})",
-                          style: TextStyle(color: colors.accent, fontSize: 18),
-                        ),
-                        onPressed: () {
-                          selectedMovies.length < 5
-                              ? Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) =>
-                                          CompareMovies(selectedMovies)),
-                                )
-                              : ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                        "You can't compare more than 4 movies"),
-                                  ),
-                                );
-                        },
-                      ),
-                    ),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                            // backgroundColor: MyColors().gray, // Set the background color of the button
-                            ),
-                        child: Text(
-                          "Clear",
-                          style: TextStyle(color: colors.accent, fontSize: 18),
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            List<Movie> removeList = List.from(selectedMovies);
-                            for (var removeItem in removeList) {
-                              for (var movie in movies) {
-                                if (movie.id == removeItem.id) {
-                                  movie.isSelected = false;
-                                }
-                              }
-                            }
-                            selectedMovies.clear();
-                          });
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              )
-          ],
+            style: TextStyle(color: colors.accent),
+          ),
+          suggestionsCallback: (pattern) => moviesToSearch.where(
+              (m) => m.title.toLowerCase().contains(pattern.toLowerCase())),
+          itemBuilder: (context, movie) => ListTile(
+            title: Text(movie.title, style: TextStyle(color: colors.accent)),
+          ),
+          onSuggestionSelected: (movie) => Navigator.push(
+              context, MaterialPageRoute(builder: (_) => MovieInfo(movie.id))),
+          noItemsFoundBuilder: (_) => Padding(
+            padding: const EdgeInsets.all(8),
+            child: Text('Δεν βρέθηκαν αποτελέσματα'),
+          ),
         ),
       ),
     );
   }
 
-  Widget buildSearch() => SearchWidget(
-        text: query,
-        hintText: 'Movie name',
-        onChanged: searchMovies,
-      );
+  Widget buildFilterToggle(dynamic colors) {
+    return TextButton.icon(
+      onPressed: () => setState(() => showFilters = !showFilters),
+      icon: Icon(
+        showFilters ? Icons.filter_alt_off : Icons.filter_alt,
+        color: colors.accent,
+      ),
+      label: Text(
+        showFilters ? 'Απόκρυψη φίλτρων' : 'Εμφάνιση φίλτρων',
+        style: TextStyle(color: colors.accent),
+      ),
+    );
+  }
 
-  Future<void> searchMovies(String query) async {
-    final search = moviesToSearch.where((movie) {
-      final searchMovies = movie.title.toLowerCase();
-      final searchLower = query.toLowerCase();
-      return searchMovies.contains(searchLower);
-    }).toList();
+  Widget buildFilters(dynamic colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          DropdownButtonFormField<String>(
+            value: selectedVenue,
+            decoration: InputDecoration(
+              labelText: 'Χώρος',
+              labelStyle: TextStyle(color: colors.accent),
+              border: OutlineInputBorder(),
+            ),
+            items: venues
+                .map((v) => DropdownMenuItem<String>(
+                      value: v,
+                      child: Text(v),
+                    ))
+                .toList(),
+            onChanged: (value) {
+              setState(() {
+                selectedVenue = value;
+                applyFilters();
+              });
+            },
+          ),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: selectedDate ?? DateTime.now(),
+                firstDate: DateTime.now().subtract(Duration(days: 1)),
+                lastDate: DateTime.now().add(Duration(days: 365)),
+              );
+              if (picked != null) {
+                setState(() => selectedDate = picked);
+                applyFilters();
+              }
+            },
+            icon: Icon(Icons.calendar_today, color: colors.accent),
+            label: Text(
+              selectedDate == null
+                  ? 'Ημερομηνία'
+                  : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
+              style: TextStyle(color: colors.accent),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                selectedDate = null;
+                selectedVenue = null;
+                movies = List.from(moviesToSearch);
+              });
+            },
+            child: Text('Καθαρισμός φίλτρων',
+                style: TextStyle(color: colors.accent)),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget buildSelectionActions(dynamic colors) {
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        children: [
+          ElevatedButton(
+            child: Text('Compare ticket prices (${selectedMovies.length})'),
+            onPressed: () {
+              if (selectedMovies.length <= 4) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => CompareMovies(selectedMovies)),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('You can compare up to 4 movies.')),
+                );
+              }
+            },
+          ),
+          ElevatedButton(
+            child: Text('Clear'),
+            onPressed: () => setState(() {
+              for (var movie in selectedMovies) movie.isSelected = false;
+              selectedMovies.clear();
+              applyFilters();
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void applyFilters() {
+    if (venues.isEmpty) return; // ensure venues loaded
     setState(() {
-      this.query = query;
-      this.movies = query.isEmpty ? moviesToSearch : search;
+      movies = moviesToSearch.where((movie) {
+        final matchesVenue =
+            selectedVenue == null || movie.venue == selectedVenue;
+        final matchesDate = selectedDate == null ||
+            (movie.startDate != null &&
+                DateTime.tryParse(movie.startDate!)?.day == selectedDate!.day &&
+                DateTime.tryParse(movie.startDate!)?.month ==
+                    selectedDate!.month &&
+                DateTime.tryParse(movie.startDate!)?.year ==
+                    selectedDate!.year);
+        return matchesVenue && matchesDate;
+      }).toList();
     });
   }
 }

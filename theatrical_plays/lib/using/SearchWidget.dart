@@ -4,13 +4,13 @@ import 'package:theatrical_plays/using/MyColors.dart';
 class SearchWidget extends StatefulWidget {
   final String text;
   final ValueChanged<String> onChanged;
-  final String? hintText; // Nullable, as hintText may be optional
+  final String? hintText;
 
   const SearchWidget({
-    Key? key, // Nullable Key
-    required this.text, // Marked as required since it shouldn't be nullable
-    required this.onChanged, // Marked as required since it shouldn't be nullable
-    this.hintText, // Can be null
+    Key? key,
+    required this.text,
+    required this.onChanged,
+    this.hintText,
   }) : super(key: key);
 
   @override
@@ -18,7 +18,27 @@ class SearchWidget extends StatefulWidget {
 }
 
 class _SearchWidgetState extends State<SearchWidget> {
-  final controller = TextEditingController();
+  late TextEditingController controller;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = TextEditingController(text: widget.text);
+  }
+
+  @override
+  void didUpdateWidget(covariant SearchWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      controller.text = widget.text;
+    }
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,36 +46,36 @@ class _SearchWidgetState extends State<SearchWidget> {
     final isDarkMode = theme.brightness == Brightness.dark;
     final colors = isDarkMode ? MyColors.dark : MyColors.light;
 
+    final isEmpty = controller.text.isEmpty;
     final styleActive = TextStyle(color: colors.accent);
     final styleHint = TextStyle(color: colors.secondaryText);
-    final style = widget.text.isEmpty ? styleHint : styleActive;
+    final style = isEmpty ? styleHint : styleActive;
 
     return Container(
       height: 42,
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         color: colors.background,
         border: Border.all(color: colors.accent),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
       child: TextField(
         controller: controller,
         decoration: InputDecoration(
           icon: Icon(Icons.search, color: colors.accent),
-          suffixIcon: widget.text.isNotEmpty
+          suffixIcon: !isEmpty
               ? GestureDetector(
-                  child: Icon(Icons.close, color: colors.accent),
                   onTap: () {
                     controller.clear();
-                    widget.onChanged(''); // Clear text and notify the parent
-                    FocusScope.of(context).requestFocus(FocusNode());
+                    widget.onChanged('');
+                    FocusScope.of(context).unfocus();
                   },
+                  child: Icon(Icons.close, color: colors.accent),
                 )
               : null,
-          hintText: widget.hintText ??
-              '', // Provide an empty string if hintText is null
-          hintStyle: style,
+          hintText: widget.hintText ?? 'Αναζήτηση...',
+          hintStyle: styleHint,
           border: InputBorder.none,
         ),
         style: style,
