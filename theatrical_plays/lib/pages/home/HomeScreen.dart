@@ -8,7 +8,6 @@ import 'package:theatrical_plays/pages/home/widgets/actor_card.dart';
 import 'package:theatrical_plays/pages/home/widgets/theater_card.dart';
 import 'package:theatrical_plays/pages/home/widgets/movie_card.dart';
 import 'package:theatrical_plays/using/AuthorizationStore.dart';
-
 import 'dart:convert';
 import 'dart:math';
 
@@ -48,9 +47,13 @@ class _HomeScreenState extends State<HomeScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text("Error loading data"));
+            return Center(
+                child: Text("Error loading data",
+                    style: TextStyle(color: colors.accent)));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text("No data available"));
+            return Center(
+                child: Text("No data available",
+                    style: TextStyle(color: colors.accent)));
           } else {
             List<Actor> actors = snapshot.data![0];
             List<Movie> movies = snapshot.data![1];
@@ -70,13 +73,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       randomActors,
                       (context, actor) => ActorCard(actor: actor as Actor),
                     ),
-                    Divider(),
+                    Divider(color: colors.secondaryText),
                     buildCategorySection(
                       "Movies",
                       randomMovies,
                       (context, movie) => MovieCard(movie: movie as Movie),
                     ),
-                    Divider(),
+                    Divider(color: colors.secondaryText),
                     buildCategorySection(
                       "Theaters",
                       randomTheaters,
@@ -110,7 +113,12 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
               title,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? MyColors.dark.accent
+                      : MyColors.light.accent),
             ),
           ),
           const SizedBox(height: 8),
@@ -176,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         return actors;
       } else {
-        throw Exception("Failed to load actors");
+        throw Exception("Failed to load actors: ${response.statusCode}");
       }
     } catch (e) {
       print("Error fetching actors: $e");
@@ -198,19 +206,11 @@ class _HomeScreenState extends State<HomeScreen> {
         List<Movie> movies = [];
 
         for (var item in jsonData['data']['results'] ?? []) {
-          movies.add(Movie(
-            id: item['id'] ?? 0,
-            title: item['title'] ?? 'Unknown Title',
-            ticketUrl: item['url'] ?? '',
-            producer: item['producer'] ?? 'Unknown Producer',
-            mediaUrl: item['mediaUrl'] ?? '',
-            duration: item['duration'] ?? '',
-            description: item['description'] ?? 'No description available',
-          ));
+          movies.add(Movie.fromJson(item)); // Use fromJson for consistency
         }
         return movies;
       } else {
-        throw Exception("Failed to load movies");
+        throw Exception("Failed to load movies: ${response.statusCode}");
       }
     } catch (e) {
       print("Error fetching movies: $e");
@@ -240,44 +240,11 @@ class _HomeScreenState extends State<HomeScreen> {
         }
         return theaters;
       } else {
-        throw Exception("Failed to load theaters");
+        throw Exception("Failed to load theaters: ${response.statusCode}");
       }
     } catch (e) {
       print("Error fetching theaters: $e");
       return [];
     }
   }
-
-  Widget buildActorTile(BuildContext context, Actor actor) => Column(
-        children: [
-          CircleAvatar(
-            radius: 40,
-            backgroundImage: NetworkImage(actor.image),
-          ),
-          SizedBox(height: 8),
-          Text(actor.fullName, textAlign: TextAlign.center),
-        ],
-      );
-
-  Widget buildMovieTile(BuildContext context, Movie movie) => Column(
-        children: [
-          CircleAvatar(
-            radius: 40,
-            backgroundImage: NetworkImage(movie.mediaUrl ?? ''),
-          ),
-          SizedBox(height: 8),
-          Text(movie.title, textAlign: TextAlign.center),
-        ],
-      );
-
-  Widget buildTheaterTile(BuildContext context, Theater theater) => Column(
-        children: [
-          CircleAvatar(
-            radius: 40,
-            backgroundImage: AssetImage('assets/default_theater.png'),
-          ),
-          SizedBox(height: 8),
-          Text(theater.title, textAlign: TextAlign.center),
-        ],
-      );
 }

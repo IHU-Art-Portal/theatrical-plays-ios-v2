@@ -2,11 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:theatrical_plays/using/Constants.dart';
 import 'package:theatrical_plays/using/globals.dart';
-import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:io';
 import 'package:theatrical_plays/models/AccountRequestDto.dart';
-import 'package:theatrical_plays/using/AuthorizationStore.dart';
 
 class UserService {
   static String? lastResponseBody; // Για debugging

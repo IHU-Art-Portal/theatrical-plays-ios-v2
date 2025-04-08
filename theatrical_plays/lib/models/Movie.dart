@@ -7,11 +7,10 @@ class Movie {
   final String? duration;
   final String description;
   bool isSelected;
-
-  // 👉 Νέα φίλτρα
+  final int? organizerId;
   final String? type; // Είδος
   final String? venue; // Χώρος
-  final String? startDate; // ISO format ημερομηνία
+  final List<String> dates; // Λίστα ημερομηνιών
 
   Movie({
     required this.id,
@@ -24,22 +23,26 @@ class Movie {
     this.isSelected = false,
     this.type,
     this.venue,
-    this.startDate,
+    this.organizerId,
+    this.dates = const [], // Default to empty list if not provided
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
     return Movie(
       id: json['id'] ?? 0,
-      title: json['title'] ?? 'Χωρίς τίτλο',
-      ticketUrl: json['ticketUrl'],
-      producer: json['producer'] ?? 'Άγνωστος παραγωγός',
-      mediaUrl: json['mediaURL'],
-      duration: json['duration'],
-      description: json['description'] ?? 'Δεν υπάρχει περιγραφή',
-      isSelected: false,
-      type: json['type'] ?? '',
-      venue: json['venue'] ?? '',
-      startDate: json['startDate'],
+      title: json['title'] ?? 'Unknown Title',
+      ticketUrl: json['ticketUrl'] ?? json['url'], // Support both fields
+      producer: json['producer'] ?? 'Unknown Producer',
+      mediaUrl: json['mediaUrl'] ??
+          json['mediaURL'] ?? // Support both 'mediaUrl' and 'mediaURL'
+          'https://thumbs.dreamstime.com/z/print-178440812.jpg',
+      duration: json['duration'] ?? 'Unknown Duration',
+      description: json['description'] ?? 'No description available',
+      isSelected: json['isSelected'] ?? false,
+      type: json['type'],
+      venue: json['venue'],
+      organizerId: json['organizerId'],
+      dates: (json['dates'] as List<dynamic>?)?.cast<String>() ?? [],
     );
   }
 }

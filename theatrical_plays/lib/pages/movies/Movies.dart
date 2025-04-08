@@ -1,71 +1,56 @@
-// Movies.dart
 import 'package:flutter/material.dart';
 import 'package:theatrical_plays/models/Movie.dart';
 import 'package:theatrical_plays/pages/movies/MovieInfo.dart';
 import 'package:theatrical_plays/pages/movies/MovieGrid.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:theatrical_plays/using/Constants.dart';
-import 'package:theatrical_plays/using/AuthorizationStore.dart';
-
 import 'CompareMovies.dart';
 
 class Movies extends StatefulWidget {
   final List<Movie> movies;
-  Movies(this.movies);
+  final DateTime? selectedDate;
+  final String? selectedVenue;
+  final Function(DateTime?, String?) onFilterChanged;
+
+  Movies({
+    required this.movies,
+    required this.selectedDate,
+    required this.selectedVenue,
+    required this.onFilterChanged,
+  });
 
   @override
-  _MoviesState createState() => _MoviesState(movies: movies);
+  _MoviesState createState() => _MoviesState();
 }
 
 class _MoviesState extends State<Movies> {
-  List<Movie> movies = [];
-  _MoviesState({required this.movies});
-
   late List<Movie> moviesToSearch;
   List<Movie> selectedMovies = [];
-  String? selectedVenue;
-  DateTime? selectedDate;
-  bool showFilters = false;
-  List<String> venues = [];
 
   @override
   void initState() {
     super.initState();
-    moviesToSearch = List.from(movies);
-    fetchVenues();
+    moviesToSearch = List.from(widget.movies);
   }
 
-  Future<void> fetchVenues() async {
-    try {
-      final uri = Uri.parse(
-          'http://${Constants().hostName}/api/Venues?page=1&size=100');
-      final headers = {
-        "Accept": "application/json",
-        "authorization":
-            "${await AuthorizationStore.getStoreValue("authorization")}"
-      };
-      final response = await http.get(uri, headers: headers);
+  List<Movie> _filterMovies() {
+    return widget.movies.where((movie) {
+      // Φιλτράρισμα ημερομηνίας
+      bool dateMatches = widget.selectedDate == null ||
+          movie.dates.any((dateStr) {
+            final date = DateTime.tryParse(dateStr);
+            return date != null &&
+                date.year == widget.selectedDate!.year &&
+                date.month == widget.selectedDate!.month &&
+                date.day == widget.selectedDate!.day;
+          });
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        final List<dynamic> results = json['data']['results'];
+      // Φιλτράρισμα χώρου
+      bool venueMatches =
+          widget.selectedVenue == null || movie.venue == widget.selectedVenue;
 
-        setState(() {
-          venues = results
-              .map((v) => v['title']?.toString() ?? '')
-              .where((v) => v.isNotEmpty)
-              .toSet()
-              .toList();
-        });
-      } else {
-        print("📛 Venue fetch failed: ${response.statusCode}");
-      }
-    } catch (e) {
-      print("❌ Exception in fetchVenues: $e");
-    }
+      return dateMatches && venueMatches;
+    }).toList();
   }
 
   @override
@@ -73,25 +58,22 @@ class _MoviesState extends State<Movies> {
     final colors = Theme.of(context).brightness == Brightness.dark
         ? MyColors.dark
         : MyColors.light;
+    final filteredMovies = _filterMovies();
 
     return Scaffold(
       backgroundColor: colors.background,
       body: Column(
         children: [
-          buildSearch(),
-          buildFilterToggle(colors),
-          if (showFilters) buildFilters(colors),
-          Expanded(child: MovieGrid(movies: movies)),
-          if (selectedMovies.isNotEmpty) buildSelectionActions(colors),
+          _buildSearchBar(colors),
+          _buildFilterButton(colors),
+          Expanded(child: MovieGrid(movies: filteredMovies)),
+          if (selectedMovies.isNotEmpty) _buildSelectionActions(colors),
         ],
       ),
     );
   }
 
-  Widget buildSearch() {
-    final colors = Theme.of(context).brightness == Brightness.dark
-        ? MyColors.dark
-        : MyColors.light;
+  Widget _buildSearchBar(dynamic colors) {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Padding(
@@ -122,7 +104,9 @@ class _MoviesState extends State<Movies> {
             title: Text(movie.title, style: TextStyle(color: colors.accent)),
           ),
           onSuggestionSelected: (movie) => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => MovieInfo(movie.id))),
+            context,
+            MaterialPageRoute(builder: (_) => MovieInfo(movie.id)),
+          ),
           noItemsFoundBuilder: (_) => Padding(
             padding: const EdgeInsets.all(8),
             child: Text('Δεν βρέθηκαν αποτελέσματα'),
@@ -132,91 +116,137 @@ class _MoviesState extends State<Movies> {
     );
   }
 
-  Widget buildFilterToggle(dynamic colors) {
-    return TextButton.icon(
-      onPressed: () => setState(() => showFilters = !showFilters),
-      icon: Icon(
-        showFilters ? Icons.filter_alt_off : Icons.filter_alt,
-        color: colors.accent,
-      ),
-      label: Text(
-        showFilters ? 'Απόκρυψη φίλτρων' : 'Εμφάνιση φίλτρων',
-        style: TextStyle(color: colors.accent),
+  Widget _buildFilterButton(dynamic colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: OutlinedButton.icon(
+        onPressed: () => _showFilterDialog(colors),
+        icon: Icon(Icons.calendar_today, color: Colors.red),
+        label: Text(
+          'Επιλογή Ημερομηνίας',
+          style: TextStyle(color: Colors.red),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: Colors.grey),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
       ),
     );
   }
 
-  Widget buildFilters(dynamic colors) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: [
-          DropdownButtonFormField<String>(
-            value: selectedVenue,
-            decoration: InputDecoration(
-              labelText: 'Χώρος',
-              labelStyle: TextStyle(color: colors.accent),
-              border: OutlineInputBorder(),
-            ),
-            items: venues
-                .map((v) => DropdownMenuItem<String>(
-                      value: v,
-                      child: Text(v),
-                    ))
-                .toList(),
-            onChanged: (value) {
-              setState(() {
-                selectedVenue = value;
-                applyFilters();
-              });
-            },
+  void _showFilterDialog(dynamic colors) {
+    DateTime? tempDate = widget.selectedDate;
+    String? tempVenue = widget.selectedVenue;
+    final uniqueVenues =
+        widget.movies.map((m) => m.venue).whereType<String>().toSet();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        title: Text(
+          'Φίλτρα Αναζήτησης',
+          style: TextStyle(color: Colors.red, fontSize: 20),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Φίλτρο Ημερομηνίας
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: tempDate ?? DateTime(2021, 7, 1),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2022),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      tempDate = picked;
+                    });
+                  }
+                },
+                icon: Icon(Icons.calendar_today, color: Colors.red),
+                label: Text(
+                  tempDate == null
+                      ? 'Επιλογή Ημερομηνίας'
+                      : '${tempDate!.day}/${tempDate!.month}/${tempDate!.year}',
+                  style: TextStyle(color: Colors.red),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.grey),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+              // Φίλτρο Χώρου
+              Text(
+                'Χώρος Διεξαγωγής',
+                style: TextStyle(color: Colors.red, fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: tempVenue,
+                decoration: InputDecoration(
+                  border: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey),
+                  ),
+                ),
+                items: [
+                  DropdownMenuItem(
+                    value: null,
+                    child: Text('Όλοι οι Χώροι',
+                        style: TextStyle(color: Colors.red)),
+                  ),
+                  ...uniqueVenues.map(
+                    (venue) => DropdownMenuItem(
+                      value: venue,
+                      child: Text(venue, style: TextStyle(color: Colors.red)),
+                    ),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    tempVenue = value;
+                  });
+                },
+              ),
+            ],
           ),
-          OutlinedButton.icon(
-            onPressed: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: selectedDate ?? DateTime.now(),
-                firstDate: DateTime.now().subtract(Duration(days: 1)),
-                lastDate: DateTime.now().add(Duration(days: 365)),
-              );
-              if (picked != null) {
-                setState(() => selectedDate = picked);
-                applyFilters();
-              }
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              widget.onFilterChanged(null, null);
+              Navigator.pop(context);
             },
-            icon: Icon(Icons.calendar_today, color: colors.accent),
-            label: Text(
-              selectedDate == null
-                  ? 'Ημερομηνία'
-                  : '${selectedDate!.day}/${selectedDate!.month}/${selectedDate!.year}',
-              style: TextStyle(color: colors.accent),
-            ),
+            child: Text('Καθαρισμός', style: TextStyle(color: Colors.red)),
           ),
           TextButton(
             onPressed: () {
-              setState(() {
-                selectedDate = null;
-                selectedVenue = null;
-                movies = List.from(moviesToSearch);
-              });
+              widget.onFilterChanged(tempDate, tempVenue);
+              Navigator.pop(context);
             },
-            child: Text('Καθαρισμός φίλτρων',
-                style: TextStyle(color: colors.accent)),
+            child: Text('Εφαρμογή', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
   }
 
-  Widget buildSelectionActions(dynamic colors) {
+  Widget _buildSelectionActions(dynamic colors) {
     return Padding(
       padding: const EdgeInsets.all(10),
       child: Column(
         children: [
           ElevatedButton(
-            child: Text('Compare ticket prices (${selectedMovies.length})'),
+            child: Text('Σύγκριση τιμών (${selectedMovies.length})'),
             onPressed: () {
               if (selectedMovies.length <= 4) {
                 Navigator.push(
@@ -226,39 +256,22 @@ class _MoviesState extends State<Movies> {
                 );
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('You can compare up to 4 movies.')),
+                  SnackBar(
+                      content:
+                          Text('Μπορείς να συγκρίνεις μέχρι 4 παραστάσεις.')),
                 );
               }
             },
           ),
           ElevatedButton(
-            child: Text('Clear'),
+            child: Text('Απαλοιφή Επιλογών'),
             onPressed: () => setState(() {
               for (var movie in selectedMovies) movie.isSelected = false;
               selectedMovies.clear();
-              applyFilters();
             }),
           ),
         ],
       ),
     );
-  }
-
-  void applyFilters() {
-    if (venues.isEmpty) return; // ensure venues loaded
-    setState(() {
-      movies = moviesToSearch.where((movie) {
-        final matchesVenue =
-            selectedVenue == null || movie.venue == selectedVenue;
-        final matchesDate = selectedDate == null ||
-            (movie.startDate != null &&
-                DateTime.tryParse(movie.startDate!)?.day == selectedDate!.day &&
-                DateTime.tryParse(movie.startDate!)?.month ==
-                    selectedDate!.month &&
-                DateTime.tryParse(movie.startDate!)?.year ==
-                    selectedDate!.year);
-        return matchesVenue && matchesDate;
-      }).toList();
-    });
   }
 }
