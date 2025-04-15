@@ -587,4 +587,100 @@ class UserService {
     });
     return res.statusCode == 200;
   }
+
+  static Map<int, String> _cachedUsernames = {};
+  static Map<int, String> _cachedActorNames = {};
+
+  static Future<String?> fetchUsernameByUserId(int userId) async {
+    print("🔍 Ζητάω username για userId: $userId");
+    if (_cachedUsernames.containsKey(userId)) {
+      return _cachedUsernames[userId];
+    }
+
+    try {
+      final uri = Uri.parse("http://${Constants().hostName}/api/User/$userId");
+      final res = await http.get(uri, headers: {
+        "Authorization": "Bearer $globalAccessToken",
+        "Accept": "application/json"
+      });
+      print("🔁 Response για $userId: ${res.statusCode} ${res.body}");
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final username = data['data']?['username'];
+        if (username != null) {
+          _cachedUsernames[userId] = username;
+          return username;
+        }
+      }
+    } catch (e) {
+      print("Σφάλμα username: $e");
+    }
+
+    return null;
+  }
+
+  static Future<String?> fetchActorNameById(int personId) async {
+    print("🔍 Ζητάω ηθοποιό για personId: $personId");
+
+    if (_cachedActorNames.containsKey(personId)) {
+      return _cachedActorNames[personId];
+    }
+
+    try {
+      final uri =
+          Uri.parse("http://${Constants().hostName}/api/People/$personId");
+      final res = await http.get(uri, headers: {
+        "Authorization": "Bearer $globalAccessToken",
+        "Accept": "application/json"
+      });
+
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final name = data['data']?['fullName'];
+        if (name != null) {
+          _cachedActorNames[personId] = name;
+          return name;
+        }
+      }
+    } catch (e) {
+      print("Σφάλμα ηθοποιού: $e");
+    }
+
+    return null;
+  }
+
+  static Future<void> preloadAllActors() async {
+    try {
+      final uri = Uri.parse("http://${Constants().hostName}/api/People");
+      final res = await http.get(uri, headers: {
+        "Authorization": "Bearer $globalAccessToken",
+        "Accept": "application/json"
+      });
+
+      if (res.statusCode == 200) {
+        final responseJson = jsonDecode(res.body);
+        final List<dynamic> actorsList =
+            responseJson['data']['results']; // ✅ Σωστό path
+
+        for (var actor in actorsList) {
+          final id = actor['id'];
+          final name = actor['fullname']; // ✅ όχι fullName αλλά fullname
+          if (id != null && name != null) {
+            _cachedActorNames[id] = name;
+          }
+        }
+
+        print("✅ Φορτώθηκαν ${_cachedActorNames.length} ηθοποιοί");
+      } else {
+        print("❌ Response code: ${res.statusCode}");
+      }
+    } catch (e) {
+      print("❌ Σφάλμα preloadAllActors: $e");
+    }
+  }
+
+  static String? getActorNameFromCache(int id) {
+    return _cachedActorNames[id];
+  }
 }

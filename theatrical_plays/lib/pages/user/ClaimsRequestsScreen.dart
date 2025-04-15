@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:theatrical_plays/models/AccountRequestDto.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/UserService.dart';
 import 'package:theatrical_plays/using/WebViewScreen.dart';
-import 'package:awesome_notifications/awesome_notifications.dart';
 
 class ClaimsRequestsScreen extends StatefulWidget {
   @override
@@ -12,16 +12,15 @@ class ClaimsRequestsScreen extends StatefulWidget {
 
 class _ClaimsRequestsScreenState extends State<ClaimsRequestsScreen> {
   late Future<List<AccountRequestDto>> claimsFuture;
-  Map<String, dynamic>? currentUserData; // 👈 Πρόσθεσε αυτό
 
   @override
   void initState() {
     super.initState();
-    claimsFuture = loadClaimsAndUser();
+    claimsFuture = preloadAndLoadClaims(); // ✅ περιμένουμε preload
   }
 
-  Future<List<AccountRequestDto>> loadClaimsAndUser() async {
-    currentUserData = await UserService.fetchUserProfile();
+  Future<List<AccountRequestDto>> preloadAndLoadClaims() async {
+    await UserService.preloadAllActors(); // ✅ φορτώνουμε ονόματα ηθοποιών
     return await UserService.getAllClaims();
   }
 
@@ -43,7 +42,6 @@ class _ClaimsRequestsScreenState extends State<ClaimsRequestsScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            print("❌ Σφάλμα ClaimsRequestsScreen: ${snapshot.error}");
             return Center(child: Text("Κάτι πήγε στραβά..."));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(child: Text("Δεν υπάρχουν αιτήματα αυτή τη στιγμή."));
@@ -56,23 +54,35 @@ class _ClaimsRequestsScreenState extends State<ClaimsRequestsScreen> {
             itemBuilder: (context, index) {
               final claim = claims[index];
 
-              // 👇 Υπολογισμός πριν το widget
-              final isCurrentUser = currentUserData != null &&
-                  currentUserData!["userId"] == claim.userId;
+              final actorName =
+                  UserService.getActorNameFromCache(claim.personId) ??
+                      "Άγνωστος ηθοποιός";
+              final requester = claim.userEmail ?? "Χρήστης #${claim.userId}";
 
-              final username =
-                  isCurrentUser ? currentUserData!["username"] : null;
+              Color statusColor;
+              switch (claim.status?.toLowerCase()) {
+                case 'approved':
+                  statusColor = Colors.green;
+                  break;
+                case 'rejected':
+                  statusColor = Colors.red;
+                  break;
+                default:
+                  statusColor = Colors.orange;
+              }
 
               return ListTile(
-                title: Text(
-                  username != null && username.isNotEmpty
-                      ? "Αιτών: @$username"
-                      : (claim.userEmail != null
-                          ? "Αιτών: ${claim.userEmail}"
-                          : "Αιτών: Άγνωστος"),
+                title: Text("Αιτών: $requester"),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Ηθοποιός: $actorName"),
+                    Text(
+                      "Κατάσταση: ${claim.status}",
+                      style: TextStyle(color: statusColor),
+                    ),
+                  ],
                 ),
-                subtitle: Text(
-                    "ID ηθοποιού: ${claim.personId} | Κατάσταση: ${claim.status}"),
                 trailing: Icon(Icons.description_outlined),
                 onTap: () {
                   if (claim.documentUrl != null) {
@@ -82,14 +92,16 @@ class _ClaimsRequestsScreenState extends State<ClaimsRequestsScreen> {
                         builder: (_) => WebViewScreen(
                           url: claim.documentUrl!,
                           onDecision: (String decision) async {
+                            bool success = false;
+
                             if (decision == 'accept') {
-                              final success =
+                              success =
                                   await UserService.approveClaim(claim.id!);
                               if (success)
                                 showAwesomeNotification(
                                     "Το αίτημα εγκρίθηκε ✅");
                             } else if (decision == 'reject') {
-                              final success =
+                              success =
                                   await UserService.rejectClaim(claim.id!);
                               if (success)
                                 showAwesomeNotification(

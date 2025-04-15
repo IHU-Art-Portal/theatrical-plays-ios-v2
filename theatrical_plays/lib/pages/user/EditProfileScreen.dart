@@ -501,7 +501,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void promptForPhoneVerification() {
-    if (balance < 10) {
+    if (balance < 0.20) {
       // Έλεγχος αν υπάρχουν αρκετά credits
       showAwesomeNotification(
           "Το υπόποιπό σας δεν είναι επαρκές για επιβεβαίωση",
