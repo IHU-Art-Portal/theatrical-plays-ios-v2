@@ -5,21 +5,23 @@ import 'package:theatrical_plays/using/AuthorizationStore.dart';
 import 'package:theatrical_plays/using/Constants.dart';
 
 class MoviesService {
+  // Φέρνει όλες τις παραστάσεις από το backend (Productions)
   static Future<List<Movie>> fetchMovies() async {
     try {
       final headers = {
         "Accept": "application/json",
         "authorization":
-            "${await AuthorizationStore.getStoreValue("authorization")}"
+            "${await AuthorizationStore.getStoreValue("authorization")}" // Παίρνουμε το token
       };
 
-      // Φόρτωση όλων των events
+      // Πρώτα φορτώνουμε τα events για να ξέρουμε ημερομηνίες και venues
       final eventsUri = Uri.parse(
           "http://${Constants().hostName}/api/events?page=1&size=9999");
       final eventsResponse = await http.get(eventsUri, headers: headers);
 
-      Map<int, List<DateTime>> productionDates = {};
-      Map<int, int?> productionVenues = {};
+      Map<int, List<DateTime>> productionDates =
+          {}; // Μαζεύουμε ημερομηνίες ανά production
+      Map<int, int?> productionVenues = {}; // Μαζεύουμε τα venueIds
 
       if (eventsResponse.statusCode == 200) {
         final eventsJson = jsonDecode(eventsResponse.body);
@@ -43,7 +45,7 @@ class MoviesService {
         return [];
       }
 
-      // Φόρτωση των venues
+      // Μετά φορτώνουμε τους χώρους (venues) για να ξέρουμε ονόματα
       final venuesUri = Uri.parse(
           "http://${Constants().hostName}/api/venues?page=1&size=9999");
       final venuesResponse = await http.get(venuesUri, headers: headers);
@@ -63,7 +65,7 @@ class MoviesService {
         print("Failed to fetch venues: ${venuesResponse.statusCode}");
       }
 
-      // Φόρτωση των productions
+      // Και στο τέλος φορτώνουμε τις ίδιες τις παραστάσεις
       final productionsUri = Uri.parse(
           "http://${Constants().hostName}/api/productions?page=1&size=1000");
       final productionsResponse =
@@ -82,6 +84,7 @@ class MoviesService {
       for (var item in results) {
         final int id = item['id'];
 
+        // Αν δεν έχουμε event για την παράσταση, δεν την εμφανίζουμε
         if (!productionDates.containsKey(id)) {
           print("Skipping production $id: No associated events found");
           continue;
@@ -94,6 +97,7 @@ class MoviesService {
                 ? 'https://i.imgur.com/TV0Qzjz.png'
                 : rawUrl;
 
+        // Μικρή λογική για να βρούμε το είδος της παράστασης
         String? inferredType;
         final title = (item['title'] ?? '').toString().toLowerCase();
         if (title.contains("stand")) {
@@ -104,6 +108,7 @@ class MoviesService {
           inferredType = "Θέατρο";
         }
 
+        // Δημιουργία αντικειμένου Movie
         final List<String> dates =
             productionDates[id]!.map((date) => date.toIso8601String()).toList();
         final int? venueId = productionVenues[id];
@@ -135,6 +140,7 @@ class MoviesService {
     }
   }
 
+  // Φέρνει τον τίτλο για κάθε organizer
   static Future<Map<int, String>> fetchOrganizerNames() async {
     Map<int, String> organizerNames = {};
 
@@ -143,7 +149,7 @@ class MoviesService {
       final headers = {
         "Accept": "application/json",
         "authorization":
-            "${await AuthorizationStore.getStoreValue("authorization")}"
+            "${await AuthorizationStore.getStoreValue("authorization")}" // Παίρνουμε token
       };
 
       final response = await http.get(uri, headers: headers);
@@ -164,5 +170,63 @@ class MoviesService {
     }
 
     return organizerNames;
+  }
+
+  // ✅ Χρήσιμη βοηθητική μέθοδος για να βρούμε μια συγκεκριμένη παράσταση με βάση το ID της
+  static Future<Movie?> fetchMovieById(int id) async {
+    try {
+      final allMovies = await fetchMovies();
+      return allMovies.firstWhere(
+        (m) => m.id == id,
+        orElse: () => null as Movie,
+      );
+    } catch (e) {
+      print("❌ Σφάλμα στο fetchMovieById: $e");
+      return null;
+    }
+  }
+
+  static Future<List<DateTime>> getDatesForProduction(int productionId) async {
+    try {
+      final headers = {
+        "Accept": "application/json",
+        "authorization":
+            "${await AuthorizationStore.getStoreValue("authorization")}"
+      };
+
+      final uri = Uri.parse(
+          "http://${Constants().hostName}/api/events?page=1&size=9999");
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final List<dynamic> events = json['data']['results'];
+
+        // Φιλτράρουμε μόνο τα events της συγκεκριμένης παραγωγής
+        final productionEvents = events
+            .where((event) => event['productionId'] == productionId)
+            .toList();
+
+        // Παίρνουμε τις ημερομηνίες
+        final dates = productionEvents
+            .map<DateTime>((event) {
+              final String? dateStr = event['dateEvent'];
+              return DateTime.tryParse(dateStr ?? '')!;
+            })
+            .where((d) => d != null)
+            .cast<DateTime>()
+            .toList();
+
+        // Ταξινόμηση για να φαίνονται όμορφα
+        dates.sort();
+        return dates;
+      } else {
+        print("❌ Failed to load events: ${response.statusCode}");
+        return [];
+      }
+    } catch (e) {
+      print("❌ Σφάλμα στη getDatesForProduction: $e");
+      return [];
+    }
   }
 }

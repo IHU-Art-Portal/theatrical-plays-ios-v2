@@ -4,6 +4,7 @@ import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +45,8 @@ void main() async {
     // Ενημέρωση ότι δεν είναι πια η πρώτη εκκίνηση
     await prefs.setBool('isFirstRun', false);
   }
+
+  await initializeDateFormatting('el_GR', null);
 
   runApp(MyApp(isDarkMode: isDarkMode));
 }

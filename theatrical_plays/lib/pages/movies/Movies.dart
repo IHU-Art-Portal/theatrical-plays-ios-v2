@@ -66,6 +66,7 @@ class _MoviesState extends State<Movies> {
         children: [
           _buildSearchBar(colors),
           _buildFilterButton(colors),
+          SizedBox(height: 10),
           Expanded(child: MovieGrid(movies: filteredMovies)),
           if (selectedMovies.isNotEmpty) _buildSelectionActions(colors),
         ],
@@ -118,18 +119,30 @@ class _MoviesState extends State<Movies> {
 
   Widget _buildFilterButton(dynamic colors) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: OutlinedButton.icon(
-        onPressed: () => _showFilterDialog(colors),
-        icon: Icon(Icons.calendar_today, color: Colors.red),
-        label: Text(
-          'Επιλογή Ημερομηνίας',
-          style: TextStyle(color: Colors.red),
-        ),
-        style: OutlinedButton.styleFrom(
-          side: BorderSide(color: Colors.grey),
-          shape: RoundedRectangleBorder(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: GestureDetector(
+        onTap: () => _showFilterDialog(colors),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: colors.background.withOpacity(0.04),
             borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: colors.accent.withOpacity(0.3)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.tune, size: 18, color: colors.accent),
+              SizedBox(width: 6),
+              Text(
+                'Φίλτρα',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: colors.accent,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -142,100 +155,127 @@ class _MoviesState extends State<Movies> {
     final uniqueVenues =
         widget.movies.map((m) => m.venue).whereType<String>().toSet();
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        title: Text(
-          'Φίλτρα Αναζήτησης',
-          style: TextStyle(color: Colors.red, fontSize: 20),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Φίλτρο Ημερομηνίας
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: tempDate ?? DateTime(2021, 7, 1),
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2022),
-                  );
-                  if (picked != null) {
-                    setState(() {
-                      tempDate = picked;
-                    });
-                  }
-                },
-                icon: Icon(Icons.calendar_today, color: Colors.red),
-                label: Text(
-                  tempDate == null
-                      ? 'Επιλογή Ημερομηνίας'
-                      : '${tempDate!.day}/${tempDate!.month}/${tempDate!.year}',
-                  style: TextStyle(color: Colors.red),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Colors.grey),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+      backgroundColor: colors.background,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              SizedBox(height: 16),
-              // Φίλτρο Χώρου
-              Text(
-                'Χώρος Διεξαγωγής',
-                style: TextStyle(color: Colors.red, fontSize: 16),
-              ),
-              SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: tempVenue,
-                decoration: InputDecoration(
-                  border: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey),
-                  ),
+            ),
+            SizedBox(height: 20),
+            Text('Φίλτρα',
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: colors.accent)),
+            SizedBox(height: 16),
+
+            // Ημερομηνία
+            GestureDetector(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: tempDate ?? DateTime.now(),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2030),
+                );
+                if (picked != null) setState(() => tempDate = picked);
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: colors.accent.withOpacity(0.2)),
+                  borderRadius: BorderRadius.circular(12),
+                  color: colors.background.withOpacity(0.05),
                 ),
-                items: [
-                  DropdownMenuItem(
-                    value: null,
-                    child: Text('Όλοι οι Χώροι',
-                        style: TextStyle(color: Colors.red)),
-                  ),
-                  ...uniqueVenues.map(
-                    (venue) => DropdownMenuItem(
-                      value: venue,
-                      child: Text(venue, style: TextStyle(color: Colors.red)),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today, color: colors.accent, size: 20),
+                    SizedBox(width: 12),
+                    Text(
+                      tempDate == null
+                          ? 'Επιλογή ημερομηνίας'
+                          : '${tempDate!.day}/${tempDate!.month}/${tempDate!.year}',
+                      style: TextStyle(fontSize: 16, color: colors.accent),
                     ),
-                  ),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    tempVenue = value;
-                  });
-                },
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+            SizedBox(height: 20),
+
+            // Χώρος
+            Text('Χώρος Διεξαγωγής',
+                style: TextStyle(fontSize: 16, color: colors.accent)),
+            SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: tempVenue,
+              isExpanded: true,
+              decoration: InputDecoration(
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              dropdownColor: colors.background,
+              items: [
+                DropdownMenuItem(
+                  value: null,
+                  child: Text('Όλοι οι Χώροι'),
+                ),
+                ...uniqueVenues.map(
+                  (venue) => DropdownMenuItem(
+                    value: venue,
+                    child: Text(venue),
+                  ),
+                ),
+              ],
+              onChanged: (value) => tempVenue = value,
+            ),
+            SizedBox(height: 30),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    widget.onFilterChanged(null, null);
+                    Navigator.pop(context);
+                  },
+                  child: Text('Καθαρισμός',
+                      style: TextStyle(color: Colors.redAccent)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colors.accent,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () {
+                    widget.onFilterChanged(tempDate, tempVenue);
+                    Navigator.pop(context);
+                  },
+                  child: Text('Εφαρμογή'),
+                ),
+              ],
+            )
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              widget.onFilterChanged(null, null);
-              Navigator.pop(context);
-            },
-            child: Text('Καθαρισμός', style: TextStyle(color: Colors.red)),
-          ),
-          TextButton(
-            onPressed: () {
-              widget.onFilterChanged(tempDate, tempVenue);
-              Navigator.pop(context);
-            },
-            child: Text('Εφαρμογή', style: TextStyle(color: Colors.red)),
-          ),
-        ],
       ),
     );
   }

@@ -10,15 +10,21 @@ import 'package:theatrical_plays/using/MyColors.dart';
 
 class MoviePeopleSection extends StatefulWidget {
   final int movieId;
-  MoviePeopleSection(this.movieId);
+
+  const MoviePeopleSection({Key? key, required this.movieId}) : super(key: key);
 
   @override
-  State<MoviePeopleSection> createState() => _MoviePeopleSectionState(movieId);
+  State<MoviePeopleSection> createState() => _MoviePeopleSectionState();
 }
 
 class _MoviePeopleSectionState extends State<MoviePeopleSection> {
-  final int movieId; // Marked as final and non-nullable
-  _MoviePeopleSectionState(this.movieId);
+  late final int movieId;
+
+  @override
+  void initState() {
+    super.initState();
+    movieId = widget.movieId;
+  }
 
   List<RelatedActor> relatedActors = [];
 
@@ -57,24 +63,19 @@ class _MoviePeopleSectionState extends State<MoviePeopleSection> {
       builder:
           (BuildContext context, AsyncSnapshot<List<RelatedActor>> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(
-            child:
-                CircularProgressIndicator(), // Show loading indicator while fetching data
-          );
+          return Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
           return Center(
             child: Text(
-              "Error loading actors",
+              "Πρόβλημα φόρτωσης ηθοποιών",
               style: TextStyle(color: colors.accent, fontSize: 22),
             ),
           );
         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Container(
-            child: Center(
-              child: Text(
-                'There are no available actors',
-                style: TextStyle(color: Colors.white70, fontSize: 18),
-              ),
+          return Center(
+            child: Text(
+              'Δεν υπάρχουν διαθέσιμοι ηθοποιοί',
+              style: TextStyle(color: Colors.white70, fontSize: 18),
             ),
           );
         } else {
@@ -94,12 +95,9 @@ class _MoviePeopleSectionState extends State<MoviePeopleSection> {
                     ),
                   );
                 },
-                leading: Padding(
-                  padding: const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
-                  child: CircleAvatar(
-                    radius: 30.0,
-                    backgroundImage: NetworkImage(actor.image),
-                  ),
+                leading: CircleAvatar(
+                  radius: 28,
+                  backgroundImage: NetworkImage(actor.image),
                 ),
                 title: Text(
                   "${actor.fullName} - ${actor.role}",
