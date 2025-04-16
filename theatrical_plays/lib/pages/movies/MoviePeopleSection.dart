@@ -24,6 +24,7 @@ class _MoviePeopleSectionState extends State<MoviePeopleSection> {
   void initState() {
     super.initState();
     movieId = widget.movieId;
+    print("📥 Fetching actors for movieId: ${widget.movieId}");
   }
 
   List<RelatedActor> relatedActors = [];
@@ -39,15 +40,25 @@ class _MoviePeopleSectionState extends State<MoviePeopleSection> {
       });
 
       if (data.statusCode == 200) {
+        print("👀 Actors response: ${data.body}");
+
         var jsonData = jsonDecode(data.body);
-        return jsonData['data']
-            .map<RelatedActor>((actor) => RelatedActor.fromJson(actor))
-            .toList();
+        if (jsonData['data'] is List) {
+          return (jsonData['data'] as List)
+              .map<RelatedActor>((actor) => RelatedActor.fromJson(actor))
+              .toList();
+        } else {
+          print("❌ data['data'] is not a list: ${jsonData['data']}");
+          return [];
+        }
       } else {
+        print("❌ Response code: ${data.statusCode}");
+        print("❌ Response body: ${data.body}");
         throw Exception("Failed to load data");
       }
     } catch (e) {
       print('Error fetching related actors: $e');
+
       return [];
     }
   }

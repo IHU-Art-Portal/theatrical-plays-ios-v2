@@ -9,8 +9,9 @@ class Movie {
   bool isSelected;
   final int? organizerId;
   final String? type; // Είδος
-  final String? venue; // Χώρος
+  final String? venue; // Πρώτος χώρος (αν υπάρχει μόνο ένας)
   final List<String> dates; // Λίστα ημερομηνιών
+  final Map<String, List<String>>? datesPerVenue;
 
   Movie({
     required this.id,
@@ -24,17 +25,18 @@ class Movie {
     this.type,
     this.venue,
     this.organizerId,
-    this.dates = const [], // Default to empty list if not provided
+    this.dates = const [],
+    this.datesPerVenue,
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
     return Movie(
       id: json['id'] ?? 0,
       title: json['title'] ?? 'Unknown Title',
-      ticketUrl: json['ticketUrl'] ?? json['url'], // Support both fields
+      ticketUrl: json['ticketUrl'] ?? json['url'],
       producer: json['producer'] ?? 'Unknown Producer',
       mediaUrl: json['mediaUrl'] ??
-          json['mediaURL'] ?? // Support both 'mediaUrl' and 'mediaURL'
+          json['mediaURL'] ??
           'https://thumbs.dreamstime.com/z/print-178440812.jpg',
       duration: json['duration'] ?? 'Unknown Duration',
       description: json['description'] ?? 'No description available',
@@ -43,6 +45,9 @@ class Movie {
       venue: json['venue'],
       organizerId: json['organizerId'],
       dates: (json['dates'] as List<dynamic>?)?.cast<String>() ?? [],
+      datesPerVenue: (json['datesPerVenue'] as Map?)?.map(
+        (k, v) => MapEntry(k.toString(), List<String>.from(v)),
+      ),
     );
   }
 }

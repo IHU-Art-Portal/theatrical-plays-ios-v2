@@ -48,7 +48,7 @@ dependencies:
   shimmer: ^3.0.0
   flutter_typeahead: ^4.6.2
   table_calendar: ^3.0.9
-  intl: ^0.18.0
+  dropdown_button2: ^2.3.9
 
 
 flutter_icons:

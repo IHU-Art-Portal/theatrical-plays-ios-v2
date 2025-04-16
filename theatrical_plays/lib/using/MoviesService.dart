@@ -22,6 +22,8 @@ class MoviesService {
       Map<int, List<DateTime>> productionDates =
           {}; // Μαζεύουμε ημερομηνίες ανά production
       Map<int, int?> productionVenues = {}; // Μαζεύουμε τα venueIds
+      Map<int, Map<int, List<DateTime>>> productionVenueDates =
+          {}; // productionId -> venueId -> ημερομηνίες
 
       if (eventsResponse.statusCode == 200) {
         final eventsJson = jsonDecode(eventsResponse.body);
@@ -33,11 +35,15 @@ class MoviesService {
           final int? venueId = event['venueId'];
           final DateTime? date = DateTime.tryParse(dateStr ?? '');
 
-          if (productionId != null && date != null) {
+          if (productionId != null && date != null && venueId != null) {
             productionDates.putIfAbsent(productionId, () => []).add(date);
-            if (venueId != null) {
-              productionVenues[productionId] = venueId;
-            }
+            productionVenues[productionId] = venueId;
+
+            // Ομαδοποίηση ημερομηνιών ανα venue
+            productionVenueDates.putIfAbsent(productionId, () => {});
+            productionVenueDates[productionId]!
+                .putIfAbsent(venueId, () => [])
+                .add(date);
           }
         }
       } else {
@@ -67,7 +73,7 @@ class MoviesService {
 
       // Και στο τέλος φορτώνουμε τις ίδιες τις παραστάσεις
       final productionsUri = Uri.parse(
-          "http://${Constants().hostName}/api/productions?page=1&size=1000");
+          "http://${Constants().hostName}/api/productions?page=1&size=1376");
       final productionsResponse =
           await http.get(productionsUri, headers: headers);
 
@@ -96,7 +102,6 @@ class MoviesService {
             (rawUrl.trim().isEmpty || rawUrl.contains('no-image'))
                 ? 'https://i.imgur.com/TV0Qzjz.png'
                 : rawUrl;
-
         // Μικρή λογική για να βρούμε το είδος της παράστασης
         String? inferredType;
         final title = (item['title'] ?? '').toString().toLowerCase();
@@ -114,6 +119,17 @@ class MoviesService {
         final int? venueId = productionVenues[id];
         final String? venueName = venueId != null ? venueNames[venueId] : null;
 
+        Map<String, List<String>> groupedDates = {};
+        if (productionVenueDates.containsKey(id)) {
+          productionVenueDates[id]!.forEach((venueId, dateList) {
+            final venueTitle = venueNames[venueId];
+            if (venueTitle != null) {
+              groupedDates[venueTitle] =
+                  dateList.map((d) => d.toIso8601String()).toList();
+            }
+          });
+        }
+
         Movie movie = Movie(
           id: id,
           title: item['title'] ?? 'Χωρίς τίτλο',
@@ -127,6 +143,7 @@ class MoviesService {
           organizerId: organizerId,
           type: inferredType,
           dates: dates,
+          datesPerVenue: groupedDates,
         );
 
         movies.add(movie);

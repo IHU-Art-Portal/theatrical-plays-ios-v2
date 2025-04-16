@@ -28,7 +28,7 @@ void main() async {
     debug: true,
   );
 
-  // 🔹 Διαβάζει την αποθηκευμένη ρύθμιση Light/Dark Mode
+  //  Διαβάζει την αποθηκευμένη ρύθμιση Light/Dark Mode
   bool isDarkMode = await getThemePreference();
 
   //  Έλεγχος αν είναι η πρώτη εκκίνηση για τα notifications
@@ -99,13 +99,13 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-// 🔹 Αποθήκευση προτίμησης χρήστη για Light/Dark Mode
+//  Αποθήκευση προτίμησης χρήστη για Light/Dark Mode
 Future<void> setThemePreference(bool isDarkMode) async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   await prefs.setBool("themeMode", isDarkMode);
 }
 
-// 🔹 Φόρτωση της αποθηκευμένης προτίμησης Theme
+//  Φόρτωση της αποθηκευμένης προτίμησης Theme
 Future<bool> getThemePreference() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   return prefs.getBool("themeMode") ?? false;
