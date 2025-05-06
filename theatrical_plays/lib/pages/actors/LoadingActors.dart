@@ -21,6 +21,7 @@ class _LoadingActorsState extends State<LoadingActors> {
   Future<List<Actor>> loadActors() async {
     try {
       Uri uri = Uri.parse("http://${Constants().hostName}/api/people");
+
       Response data = await get(uri, headers: {
         "Accept": "application/json",
         "authorization":

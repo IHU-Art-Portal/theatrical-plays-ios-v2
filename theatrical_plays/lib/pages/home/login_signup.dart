@@ -67,7 +67,9 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                       ),
                       children: [
                         TextSpan(
-                          text: isSignupScreen ? " Theatrical Plays" : " Back,",
+                          text: isSignupScreen
+                              ? " Theatrical Analytics"
+                              : " Back,",
                           style: TextStyle(
                             fontSize: 25,
                             fontWeight: FontWeight.bold,

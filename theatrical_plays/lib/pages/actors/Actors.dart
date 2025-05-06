@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:theatrical_plays/models/Actor.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/SearchWidget.dart';
-import 'package:theatrical_plays/using/ActorsService.dart';
-import 'package:theatrical_plays/pages/actors/ActorProfilePgae.dart';
+import 'package:theatrical_plays/pages/actors/widgets/ActorGrid.dart';
+import 'package:theatrical_plays/pages/actors/widgets/ActorFiltersDialog.dart';
 
-// Actors page - shows a list of actors with search functionality
 class Actors extends StatefulWidget {
-  final List<Actor> actorList; // Renamed to sound more casual
+  final List<Actor> actorList;
+
   Actors(this.actorList);
 
   @override
@@ -15,9 +16,9 @@ class Actors extends StatefulWidget {
 }
 
 class _ActorsState extends State<Actors> {
-  List<Actor> actorList; // Keeping it simple
-  String searchTxt = ''; // More casual name
-  List<Actor> searchPool = []; // Sounds more "human"
+  List<Actor> actorList;
+  List<Actor> searchPool = [];
+  String searchTxt = '';
 
   _ActorsState({required this.actorList});
 
@@ -25,92 +26,166 @@ class _ActorsState extends State<Actors> {
   void initState() {
     super.initState();
     searchPool = List.from(actorList);
-    // Sorting alphabetically - gotta keep things tidy!
     actorList.sort(
-        (a, b) => a.fullName.toLowerCase().compareTo(b.fullName.toLowerCase()));
+      (a, b) => a.fullName.toLowerCase().compareTo(b.fullName.toLowerCase()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final darkMode = theme.brightness == Brightness.dark; // Shortened name
     final clr =
-        darkMode ? MyColors.dark : MyColors.light; // Casual abbreviation
+        theme.brightness == Brightness.dark ? MyColors.dark : MyColors.light;
 
     return Scaffold(
       backgroundColor: clr.background,
       body: Column(
         children: [
           buildSearch(),
-          Expanded(
-            child: ListView.builder(
-              itemCount: actorList.length,
-              itemBuilder: (ctx, idx) {
-                // Shortened context and index
-                return ListTile(
-                  onTap: () {
-                    Navigator.push(
-                      ctx,
-                      MaterialPageRoute(
-                        builder: (ctx) =>
-                            ActorProfilePage(actor: actorList[idx]),
-                      ),
-                    );
-                  },
-                  leading: Padding(
-                    padding: const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
-                    child: CircleAvatar(
-                      radius: 30.0,
-                      backgroundColor: Colors.grey[800], // Fallback color
-                      child: ClipOval(
-                        child: Image.network(
-                          actorList[idx].image,
-                          fit: BoxFit.cover,
-                          errorBuilder: (ctx, err, stack) {
-                            return Image.asset(
-                              "images/avatar.jpg",
-                              fit: BoxFit.cover,
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                  title: Text(
-                    actorList[idx].fullName,
-                    style: TextStyle(color: clr.accent),
-                  ),
-                );
-              },
-            ),
-          )
+          _buildFilterButton(clr),
+          Expanded(child: ActorGrid(actors: actorList)),
         ],
       ),
     );
   }
 
-  // Search bar widget
   Widget buildSearch() => SearchWidget(
         text: searchTxt,
-        hintText: 'Actor name',
+        hintText: 'Αναζήτηση ονόματος',
         onChanged: searchActors,
       );
 
-  // Search logic - filters actors based on input
   Future<void> searchActors(String txt) async {
+    final lowerTxt = txt.toLowerCase();
     final filtered = searchPool.where((actor) {
-      final name = actor.fullName.toLowerCase();
-      final input = txt.toLowerCase();
-      return name.contains(input);
+      return actor.fullName.toLowerCase().contains(lowerTxt);
     }).toList();
 
     setState(() {
-      searchTxt = txt; // Update the search text
-      if (txt.isEmpty) {
-        actorList = searchPool; // Reset to full list
-      } else {
-        actorList = filtered; // Show filtered results
-      }
+      searchTxt = txt;
+      actorList = txt.isEmpty ? searchPool : filtered;
     });
+  }
+
+  Widget _buildFilterButton(dynamic clr) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: GestureDetector(
+        onTap: () => _showFilterDialog(),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            border: Border.all(color: clr.accent.withOpacity(0.3)),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.tune, size: 18, color: clr.accent),
+              const SizedBox(width: 6),
+              Text("Φίλτρα", style: TextStyle(color: clr.accent)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showFilterDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => ActorFiltersDialog(
+        onApply: (filters) {
+          if (filters.isEmpty) {
+            setState(() {
+              actorList = List.from(searchPool);
+            });
+            return;
+          }
+
+          final List<Actor> filtered = searchPool.where((actor) {
+            // Αν έχει ενεργό φίλτρο ηλικίας
+            if (filters.containsKey('minAge') &&
+                filters.containsKey('maxAge')) {
+              if (actor.birthdate == null || actor.birthdate!.isEmpty)
+                return false;
+              try {
+                final birth = DateFormat("MM/dd/yyyy HH:mm:ss")
+                    .parse(actor.birthdate!, true);
+                final age = _calculateAge(birth);
+                if (age < filters['minAge'] || age > filters['maxAge'])
+                  return false;
+              } catch (_) {
+                return false;
+              }
+            }
+
+            // Φίλτρο ύψους
+            if (filters.containsKey('minHeight') &&
+                filters.containsKey('maxHeight')) {
+              final h = _parseHeight(actor.height ?? '');
+              if (h == null ||
+                  h < filters['minHeight'] ||
+                  h > filters['maxHeight']) return false;
+            }
+
+            // Φίλτρο βάρους
+            if (filters.containsKey('minWeight') &&
+                filters.containsKey('maxWeight')) {
+              final w = _parseWeight(actor.weight ?? '');
+              if (w == null ||
+                  w < filters['minWeight'] ||
+                  w > filters['maxWeight']) return false;
+            }
+
+            // Claim filter
+            if (filters['claimStatus'] == 'claimed' && !actor.isClaimed)
+              return false;
+            if (filters['claimStatus'] == 'available' && actor.isClaimed)
+              return false;
+
+            return true;
+          }).toList();
+
+          setState(() {
+            actorList = filtered;
+          });
+        },
+      ),
+    );
+  }
+
+  int _calculateAge(DateTime birthDate) {
+    final now = DateTime.now();
+    int age = now.year - birthDate.year;
+    if (now.month < birthDate.month ||
+        (now.month == birthDate.month && now.day < birthDate.day)) {
+      age--;
+    }
+    return age;
+  }
+
+  double? _parseHeight(String raw) {
+    try {
+      raw = raw.toLowerCase().replaceAll(' ', '');
+      if (raw.contains('cm')) return double.parse(raw.replaceAll('cm', ''));
+      if (raw.contains('m')) return double.parse(raw.replaceAll('m', '')) * 100;
+      return double.parse(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  double? _parseWeight(String raw) {
+    try {
+      raw = raw.toLowerCase().replaceAll(RegExp(r'[^0-9.]'), '');
+      return double.parse(raw);
+    } catch (_) {
+      return null;
+    }
   }
 }
