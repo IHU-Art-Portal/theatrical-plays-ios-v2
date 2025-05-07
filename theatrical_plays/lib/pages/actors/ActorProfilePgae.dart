@@ -12,6 +12,7 @@ import 'package:theatrical_plays/pages/actors/widgets/ActorProfileBody.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:theatrical_plays/using/globals.dart';
+import 'package:theatrical_plays/using/UserService.dart';
 
 class ActorProfilePage extends StatefulWidget {
   final Actor actor;
@@ -77,31 +78,19 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
           await rootBundle.load('assets/test_files/test_cv_tp.pdf');
       final base64File = base64Encode(fileBytes.buffer.asUint8List());
 
-      final url = Uri.parse(
-          "http://${Constants().hostName}/api/AccountRequests/RequestAccount");
-      final headers = {
-        "Accept": "application/json",
-        "Authorization": "Bearer $globalAccessToken",
-        "Content-Type": "application/json",
-      };
+      final success = await UserService.claimActor(
+        actorId: widget.actor.id,
+        base64Document: base64File,
+      );
 
-      final body = jsonEncode({
-        "personId": widget.actor.id,
-        "identificationDocument": base64File,
-      });
-
-      final response = await http.post(url, headers: headers, body: body);
-
-      if (response.statusCode == 200) {
+      if (success) {
         showAwesomeNotification("Το αίτημα διεκδίκησης στάλθηκε",
             title: "✅ Επιτυχία");
       } else {
-        showAwesomeNotification("Αποτυχία: ${response.statusCode}",
-            title: "❌ Αποτυχία");
+        showAwesomeNotification("Αποτυχία διεκδίκησης", title: "❌ Αποτυχία");
       }
     } catch (e) {
-      showAwesomeNotification("Σφάλμα κατά την αποστολή αιτήματος",
-          title: "❌ Αποτυχία");
+      showAwesomeNotification("Σφάλμα κατά την αποστολή", title: "❌ Αποτυχία");
     }
   }
 

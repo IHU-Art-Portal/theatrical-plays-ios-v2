@@ -11,19 +11,19 @@ class MoviesService {
       final headers = {
         "Accept": "application/json",
         "authorization":
-            "${await AuthorizationStore.getStoreValue("authorization")}" // Παίρνουμε το token
+            "${await AuthorizationStore.getStoreValue("authorization")}"
       };
 
-      // Πρώτα φορτώνουμε τα events για να ξέρουμε ημερομηνίες και venues
+      // Φέρνουμε όλα τα events για να πάρουμε ημερομηνίες, χώρους και τιμές
       final eventsUri = Uri.parse(
           "http://${Constants().hostName}/api/events?page=1&size=9999");
       final eventsResponse = await http.get(eventsUri, headers: headers);
 
-      Map<int, List<DateTime>> productionDates =
-          {}; // Μαζεύουμε ημερομηνίες ανά production
-      Map<int, int?> productionVenues = {}; // Μαζεύουμε τα venueIds
-      Map<int, Map<int, List<DateTime>>> productionVenueDates =
-          {}; // productionId -> venueId -> ημερομηνίες
+      Map<int, List<DateTime>> productionDates = {};
+      Map<int, int?> productionVenues = {};
+      Map<int, Map<int, List<DateTime>>> productionVenueDates = {};
+      Map<int, String> priceRanges =
+          {}; // 👉 Για να αποθηκεύσουμε την τιμή "από"
 
       if (eventsResponse.statusCode == 200) {
         final eventsJson = jsonDecode(eventsResponse.body);
@@ -33,13 +33,19 @@ class MoviesService {
           final int? productionId = event['productionId'];
           final String? dateStr = event['dateEvent'];
           final int? venueId = event['venueId'];
+          final String? price = event['priceRange'];
           final DateTime? date = DateTime.tryParse(dateStr ?? '');
 
           if (productionId != null && date != null && venueId != null) {
             productionDates.putIfAbsent(productionId, () => []).add(date);
             productionVenues[productionId] = venueId;
 
-            // Ομαδοποίηση ημερομηνιών ανα venue
+            // Τιμή ανά παράσταση (πρώτη που θα βρει)
+            if (!priceRanges.containsKey(productionId) && price != null) {
+              priceRanges[productionId] = price;
+            }
+
+            // Ομαδοποίηση ημερομηνιών ανά venue
             productionVenueDates.putIfAbsent(productionId, () => {});
             productionVenueDates[productionId]!
                 .putIfAbsent(venueId, () => [])
@@ -51,7 +57,7 @@ class MoviesService {
         return [];
       }
 
-      // Μετά φορτώνουμε τους χώρους (venues) για να ξέρουμε ονόματα
+      // Φέρνουμε τα venues για να έχουμε τα ονόματά τους
       final venuesUri = Uri.parse(
           "http://${Constants().hostName}/api/venues?page=1&size=9999");
       final venuesResponse = await http.get(venuesUri, headers: headers);
@@ -71,7 +77,7 @@ class MoviesService {
         print("Failed to fetch venues: ${venuesResponse.statusCode}");
       }
 
-      // Και στο τέλος φορτώνουμε τις ίδιες τις παραστάσεις
+      // Τώρα φέρνουμε τις ίδιες τις παραστάσεις
       final productionsUri = Uri.parse(
           "http://${Constants().hostName}/api/productions?page=1&size=1376");
       final productionsResponse =
@@ -84,13 +90,12 @@ class MoviesService {
 
       final productionsJson = jsonDecode(productionsResponse.body);
       final List<dynamic> results = productionsJson['data']['results'];
-
       List<Movie> movies = [];
 
       for (var item in results) {
         final int id = item['id'];
 
-        // Αν δεν έχουμε event για την παράσταση, δεν την εμφανίζουμε
+        // Αν δεν έχει event, την αγνοούμε
         if (!productionDates.containsKey(id)) {
           print("Skipping production $id: No associated events found");
           continue;
@@ -102,7 +107,8 @@ class MoviesService {
             (rawUrl.trim().isEmpty || rawUrl.contains('no-image'))
                 ? 'https://i.imgur.com/TV0Qzjz.png'
                 : rawUrl;
-        // Μικρή λογική για να βρούμε το είδος της παράστασης
+
+        // Εικασία για το είδος (π.χ. stand-up, μουσική, θέατρο)
         String? inferredType;
         final title = (item['title'] ?? '').toString().toLowerCase();
         if (title.contains("stand")) {
@@ -113,7 +119,6 @@ class MoviesService {
           inferredType = "Θέατρο";
         }
 
-        // Δημιουργία αντικειμένου Movie
         final List<String> dates =
             productionDates[id]!.map((date) => date.toIso8601String()).toList();
         final int? venueId = productionVenues[id];
@@ -130,7 +135,7 @@ class MoviesService {
           });
         }
 
-        Movie movie = Movie(
+        final Movie movie = Movie(
           id: id,
           title: item['title'] ?? 'Χωρίς τίτλο',
           ticketUrl: item['ticketUrl'],
@@ -144,15 +149,16 @@ class MoviesService {
           type: inferredType,
           dates: dates,
           datesPerVenue: groupedDates,
+          priceRange: priceRanges[id], // 👈 Εδώ περνάμε την τιμή από τα events
         );
 
         movies.add(movie);
       }
 
-      print("Successfully loaded ${movies.length} productions.");
+      print("✅ Φορτώθηκαν ${movies.length} παραστάσεις.");
       return movies;
     } catch (e) {
-      print("Error fetching movies: $e");
+      print("❌ Σφάλμα στο fetchMovies: $e");
       return [];
     }
   }
@@ -245,5 +251,29 @@ class MoviesService {
       print("❌ Σφάλμα στη getDatesForProduction: $e");
       return [];
     }
+  }
+
+  static Future<int?> getFirstEventIdForProduction(int productionId) async {
+    final headers = {
+      "Accept": "application/json",
+      "authorization":
+          "${await AuthorizationStore.getStoreValue("authorization")}"
+    };
+
+    final uri =
+        Uri.parse("http://${Constants().hostName}/api/events?page=1&size=9999");
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      final List<dynamic> events = json['data']['results'];
+
+      for (var event in events) {
+        if (event['productionId'] == productionId) {
+          return event['id']; // επέστρεψε το πρώτο eventId
+        }
+      }
+    }
+    return null;
   }
 }

@@ -12,6 +12,8 @@ class Movie {
   final String? venue; // Πρώτος χώρος (αν υπάρχει μόνο ένας)
   final List<String> dates; // Λίστα ημερομηνιών
   final Map<String, List<String>>? datesPerVenue;
+  final bool isClaimed;
+  final String? priceRange;
 
   Movie({
     required this.id,
@@ -27,6 +29,8 @@ class Movie {
     this.organizerId,
     this.dates = const [],
     this.datesPerVenue,
+    this.priceRange,
+    this.isClaimed = false,
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
@@ -48,6 +52,7 @@ class Movie {
       datesPerVenue: (json['datesPerVenue'] as Map?)?.map(
         (k, v) => MapEntry(k.toString(), List<String>.from(v)),
       ),
+      isClaimed: json['isClaimed'] ?? false, // ✅ από backend
     );
   }
 }

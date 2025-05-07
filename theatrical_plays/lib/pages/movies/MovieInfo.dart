@@ -1,15 +1,18 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
-import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:theatrical_plays/models/Movie.dart';
-import 'package:theatrical_plays/using/MoviesService.dart';
-import 'package:theatrical_plays/using/ExpandableDescription.dart';
 import 'package:theatrical_plays/pages/movies/MoviePeopleSection.dart';
+import 'package:theatrical_plays/using/ExpandableDescription.dart';
+import 'package:theatrical_plays/using/MoviesService.dart';
+import 'package:theatrical_plays/using/UserService.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 
 class MovieInfo extends StatefulWidget {
   final int movieId;
-
   const MovieInfo(this.movieId, {super.key});
 
   @override
@@ -18,7 +21,7 @@ class MovieInfo extends StatefulWidget {
 
 class _MovieInfoState extends State<MovieInfo> {
   Movie? movie;
-  String? selectedVenue; // Επιλεγμένο θέατρο από dropdown
+  String? selectedVenue;
 
   @override
   void initState() {
@@ -30,23 +33,45 @@ class _MovieInfoState extends State<MovieInfo> {
     final result = await MoviesService.fetchMovieById(widget.movieId);
     setState(() {
       movie = result;
-      selectedVenue = result?.datesPerVenue?.keys.first; // default επιλογή
+      selectedVenue = result?.datesPerVenue?.keys.first;
     });
   }
 
-  // Χρήσιμο για να εμφανίσουμε διάρκεια σε format: "1 ώρα και 30 λεπτά"
+  Future<void> claimProduction() async {
+    if (movie?.datesPerVenue?.isEmpty ?? true) return;
+
+    // Πάρε το πρώτο event ID που μπορείς (θα το φέρουμε πιο σωστά μετά)
+    final productionId = movie!.id;
+    final eventId =
+        await MoviesService.getFirstEventIdForProduction(productionId);
+
+    if (eventId == null) {
+      showAwesomeNotification("Δεν βρέθηκε διαθέσιμο event",
+          title: "⚠️ Σφάλμα");
+      return;
+    }
+
+    final success = await UserService.claimEvent(eventId);
+
+    if (success) {
+      showAwesomeNotification("Το αίτημα στάλθηκε", title: "✅ Επιτυχία");
+    } else {
+      showAwesomeNotification("Αποτυχία αιτήματος", title: "❌ Αποτυχία");
+    }
+  }
+
   String formatDuration(int minutes) {
     final hours = minutes ~/ 60;
     final mins = minutes % 60;
-    if (hours > 0 && mins > 0) return 'Διάρκεια: $hours ώρες και $mins λεπτά';
-    if (hours > 0) return 'Διάρκεια: $hours ώρες';
-    return 'Διάρκεια: $mins λεπτά';
+    if (hours > 0 && mins > 0) return '$hours ώρες και $mins λεπτά';
+    if (hours > 0) return '$hours ώρες';
+    return '$mins λεπτά';
   }
 
   @override
   Widget build(BuildContext context) {
     if (movie == null) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: Colors.black,
         body: Center(child: CircularProgressIndicator()),
       );
@@ -58,37 +83,60 @@ class _MovieInfoState extends State<MovieInfo> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Εικόνα εξωφύλλου
             Stack(
               children: [
                 Image.network(
-                  movie!.mediaUrl!,
+                  movie!.mediaUrl ?? '',
                   width: double.infinity,
                   height: 300,
                   fit: BoxFit.cover,
                 ),
-                Positioned(
+                const Positioned(
                   top: 40,
                   left: 16,
                   child: BackButton(color: Colors.white),
                 ),
+                Positioned(
+                  top: 40,
+                  right: 16,
+                  child: GestureDetector(
+                    onTap: claimProduction,
+                    child: Tooltip(
+                      message: "Κάνε αίτημα διεκδίκησης",
+                      child: Icon(Icons.verified_outlined,
+                          color: Colors.amber, size: 30),
+                    ),
+                  ),
+                ),
               ],
             ),
-
-            // Τίτλος παράστασης
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Text(
-                movie!.title,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    movie!.title,
+                    style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white),
+                  ),
+                  if (movie!.priceRange != null &&
+                      movie!.priceRange!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        movie!.priceRange!,
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.greenAccent),
+                      ),
+                    ),
+                ],
               ),
             ),
-
-            // Περιεχόμενα
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
@@ -96,40 +144,32 @@ class _MovieInfoState extends State<MovieInfo> {
                 children: [
                   ExpandableDescription(description: movie!.description),
                   const SizedBox(height: 16),
-
-                  // Αν υπάρχει διάρκεια, την εμφανίζουμε formatted
                   if (movie!.duration != null &&
                       int.tryParse(movie!.duration!) != null)
                     Row(
                       children: [
-                        Icon(Icons.schedule, color: Colors.white54),
+                        const Icon(Icons.schedule, color: Colors.white54),
                         const SizedBox(width: 6),
                         Text(
                           formatDuration(int.parse(movie!.duration!)),
-                          style: TextStyle(color: Colors.white70),
+                          style: const TextStyle(color: Colors.white70),
                         ),
                       ],
                     ),
-
                   const SizedBox(height: 24),
-
-                  // Αν υπάρχουν θέατρα & ημερομηνίες
                   if (movie!.datesPerVenue != null &&
                       movie!.datesPerVenue!.isNotEmpty)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Επίλεξε θέατρο',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        const Text('Επίλεξε θέατρο',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                           decoration: BoxDecoration(
                             color: Colors.grey[850],
                             borderRadius: BorderRadius.circular(10),
@@ -139,105 +179,98 @@ class _MovieInfoState extends State<MovieInfo> {
                             child: DropdownButton2<String>(
                               isExpanded: true,
                               value: selectedVenue,
-                              iconStyleData: IconStyleData(
+                              onChanged: (val) =>
+                                  setState(() => selectedVenue = val),
+                              items: movie!.datesPerVenue!.keys
+                                  .map((v) => DropdownMenuItem(
+                                      value: v, child: Text(v)))
+                                  .toList(),
+                              iconStyleData: const IconStyleData(
                                 icon: Icon(Icons.arrow_drop_down,
                                     color: Colors.white),
                               ),
                               dropdownStyleData: DropdownStyleData(
-                                maxHeight:
-                                    200, // scrollable μετά από ~4 επιλογές
                                 decoration: BoxDecoration(
                                   color: Colors.grey[900],
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
-                              style: TextStyle(color: Colors.white),
-                              onChanged: (String? newValue) {
-                                setState(() {
-                                  selectedVenue = newValue;
-                                });
-                              },
-                              items: movie!.datesPerVenue!.keys
-                                  .map((venue) => DropdownMenuItem<String>(
-                                        value: venue,
-                                        child: Text(venue),
-                                      ))
-                                  .toList(),
+                              style: const TextStyle(color: Colors.white),
                             ),
                           ),
                         ),
-
                         const SizedBox(height: 16),
-
-                        // Ημερομηνίες για το επιλεγμένο θέατρο
                         if (selectedVenue != null)
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
                             children: movie!.datesPerVenue![selectedVenue]!
-                                .map((dateStr) {
-                              final parsedDate = DateTime.tryParse(dateStr);
-                              final display = parsedDate != null
-                                  ? DateFormat('dd/MM/yyyy').format(parsedDate)
-                                  : 'Άκυρη ημερομηνία';
-                              return Container(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[850],
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  display,
-                                  style: TextStyle(color: Colors.white),
-                                ),
-                              );
-                            }).toList(),
+                                .map((d) => _dateChip(d))
+                                .toList(),
                           ),
                       ],
                     )
                   else
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16.0),
-                      child: Text(
-                        'Δεν υπάρχουν διαθέσιμες ημερομηνίες για αυτή την παράσταση.',
-                        style: TextStyle(color: Colors.white60),
-                      ),
+                    const Padding(
+                      padding: EdgeInsets.only(top: 16),
+                      child: Text('Δεν υπάρχουν διαθέσιμες ημερομηνίες.',
+                          style: TextStyle(color: Colors.white60)),
                     ),
-
                   const SizedBox(height: 24),
-
-                  // Κουμπί αγοράς εισιτηρίου (αν υπάρχει link)
                   if (movie!.ticketUrl != null &&
                       movie!.ticketUrl!.trim().isNotEmpty)
                     ElevatedButton.icon(
                       onPressed: () => launchUrl(Uri.parse(movie!.ticketUrl!)),
-                      icon: Icon(Icons.local_activity_outlined),
-                      label: Text('Αγορά Εισιτηρίου'),
+                      icon: const Icon(Icons.local_activity_outlined),
+                      label: const Text('Αγορά Εισιτηρίου'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black,
-                        minimumSize: Size(double.infinity, 48),
+                        minimumSize: const Size(double.infinity, 48),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                 ],
               ),
             ),
-
             const SizedBox(height: 20),
-
-            // Συντελεστές / Παρουσιαστές
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: MoviePeopleSection(movieId: movie!.id),
             ),
-
             const SizedBox(height: 30),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _dateChip(String dateStr) {
+    final parsed = DateTime.tryParse(dateStr);
+    final text = parsed != null
+        ? DateFormat('dd/MM/yyyy').format(parsed)
+        : 'Άγνωστη ημερομηνία';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[850],
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(text, style: const TextStyle(color: Colors.white)),
+    );
+  }
+
+  void showAwesomeNotification(String body,
+      {String title = '🔔 Ειδοποίηση',
+      NotificationLayout layout = NotificationLayout.Default}) {
+    AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        channelKey: 'basic_channel',
+        title: title,
+        body: body,
+        notificationLayout: layout,
       ),
     );
   }

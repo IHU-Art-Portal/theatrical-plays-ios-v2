@@ -683,4 +683,69 @@ class UserService {
   static String? getActorNameFromCache(int id) {
     return _cachedActorNames[id];
   }
+
+  // ----------------------------
+  // Claim ηθοποιού
+  // ----------------------------
+  static Future<bool> claimActor({
+    required int actorId,
+    required String base64Document,
+  }) async {
+    try {
+      final uri = Uri.parse(
+          "http://${Constants().hostName}/api/AccountRequests/RequestAccount");
+      final headers = {
+        "Authorization": "Bearer $globalAccessToken",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      };
+
+      final body = jsonEncode({
+        "personId": actorId,
+        "identificationDocument": base64Document,
+      });
+
+      final response = await http.post(uri, headers: headers, body: body);
+
+      if (response.statusCode == 200) {
+        print("✅ Claim ηθοποιού στάλθηκε!");
+
+        return true;
+      } else {
+        print("❌ Claim ηθοποιού απέτυχε: ${response.statusCode}");
+        return false;
+      }
+    } catch (e) {
+      print("❌ Claim ηθοποιού exception: $e");
+      return false;
+    }
+  }
+
+  // ----------------------------
+  // Claim παράστασης
+  // ----------------------------
+  static Future<bool> claimEvent(int eventId) async {
+    try {
+      final uri = Uri.parse(
+          "http://${Constants().hostName}/api/events/claim-event/$eventId");
+
+      final headers = {
+        "Authorization": "Bearer $globalAccessToken",
+        "Accept": "application/json",
+      };
+
+      final response = await http.post(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        print("✅ Claim event επιτυχές!");
+        return true;
+      } else {
+        print("❌ Claim event απέτυχε: ${response.statusCode}");
+        return false;
+      }
+    } catch (e) {
+      print("❌ Claim event exception: $e");
+      return false;
+    }
+  }
 }
