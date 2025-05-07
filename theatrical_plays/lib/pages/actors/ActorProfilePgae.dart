@@ -9,15 +9,13 @@ import 'package:theatrical_plays/using/Constants.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/Loading.dart';
 import 'package:theatrical_plays/pages/actors/widgets/ActorProfileBody.dart';
-import 'package:theatrical_plays/pages/actors/widgets/ActorHeaderWidget.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
-import 'package:file_picker/file_picker.dart';
-import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:theatrical_plays/using/globals.dart';
 
 class ActorProfilePage extends StatefulWidget {
   final Actor actor;
+
   const ActorProfilePage({Key? key, required this.actor}) : super(key: key);
 
   @override
@@ -62,8 +60,6 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
           final p = item['production'];
           return Movie.fromJson(p);
         }).toList();
-      } else {
-        print('Failed to load productions: ${response.statusCode}');
       }
     } catch (e) {
       print('Error: $e');
@@ -83,8 +79,6 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
 
       final url = Uri.parse(
           "http://${Constants().hostName}/api/AccountRequests/RequestAccount");
-      final token = await AuthorizationStore.getStoreValue("authorization");
-      print("🔑 TOKEN: $token");
       final headers = {
         "Accept": "application/json",
         "Authorization": "Bearer $globalAccessToken",
@@ -99,45 +93,60 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
       final response = await http.post(url, headers: headers, body: body);
 
       if (response.statusCode == 200) {
-        print("✅ Claim sent successfully!");
-        showAwesomeNotification("Το αίτημα διεκδίκησης λογαριασμούς στάλθηκε",
+        showAwesomeNotification("Το αίτημα διεκδίκησης στάλθηκε",
             title: "✅ Επιτυχία");
       } else {
-        print("❌ Claim failed: ${response.statusCode}");
-        print("Response body: ${response.body}");
-        showAwesomeNotification("Αποτυχία διεκδίκησης: ${response.statusCode}",
+        showAwesomeNotification("Αποτυχία: ${response.statusCode}",
             title: "❌ Αποτυχία");
       }
     } catch (e) {
-      print("❌ Error while sending claim: $e");
-      showAwesomeNotification("Σφάλμα κατά την αποστολή του αιτήματος",
+      showAwesomeNotification("Σφάλμα κατά την αποστολή αιτήματος",
           title: "❌ Αποτυχία");
     }
+  }
+
+  void openGallery(List<String> images) {
+    showDialog(
+      context: context,
+      builder: (_) {
+        return Dialog(
+          backgroundColor: Colors.black,
+          insetPadding: EdgeInsets.zero,
+          child: _GalleryView(images: images),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+    final clr =
+        theme.brightness == Brightness.dark ? MyColors.dark : MyColors.light;
 
     return Scaffold(
-      backgroundColor: colors.background,
+      backgroundColor: clr.background,
       appBar: AppBar(
-        backgroundColor: colors.background,
+        backgroundColor: clr.background,
         elevation: 0,
-        iconTheme: IconThemeData(color: colors.accent),
-        title:
-            Text(widget.actor.fullName, style: TextStyle(color: colors.accent)),
+        iconTheme: IconThemeData(color: clr.accent),
+        title: Text(widget.actor.fullName, style: TextStyle(color: clr.accent)),
       ),
       body: isLoading
           ? Center(child: Loading())
           : Stack(
               children: [
-                ActorProfileBody(
-                  actor: widget.actor,
-                  productions: productions,
-                  movies: movies,
+                GestureDetector(
+                  onTap: () {
+                    if (widget.actor.images.isNotEmpty) {
+                      openGallery(widget.actor.images);
+                    }
+                  },
+                  child: ActorProfileBody(
+                    actor: widget.actor,
+                    productions: productions,
+                    movies: movies,
+                  ),
                 ),
                 Positioned(
                   top: 15,
@@ -146,11 +155,11 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
                     onTap: isClaimed ? null : claimActor,
                     child: Tooltip(
                       message: isClaimed
-                          ? "Αυτός ο λογαριασμός είναι διεκδικημένος"
+                          ? "Ο λογαριασμός είναι ήδη διεκδικημένος"
                           : "Κάνε αίτημα διεκδίκησης",
                       child: Icon(
                         isClaimed ? Icons.verified : Icons.verified_outlined,
-                        color: isClaimed ? Colors.green : colors.accent,
+                        color: isClaimed ? Colors.green : clr.accent,
                         size: 30,
                       ),
                     ),
@@ -172,6 +181,46 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
         body: body,
         notificationLayout: layout,
       ),
+    );
+  }
+}
+
+class _GalleryView extends StatefulWidget {
+  final List<String> images;
+
+  const _GalleryView({required this.images});
+
+  @override
+  State<_GalleryView> createState() => _GalleryViewState();
+}
+
+class _GalleryViewState extends State<_GalleryView> {
+  int index = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        PageView.builder(
+          itemCount: widget.images.length,
+          onPageChanged: (i) => setState(() => index = i),
+          itemBuilder: (_, i) {
+            return InteractiveViewer(
+              child: Center(
+                child: Image.network(widget.images[i], fit: BoxFit.contain),
+              ),
+            );
+          },
+        ),
+        Positioned(
+          top: 40,
+          right: 20,
+          child: IconButton(
+            icon: Icon(Icons.close, color: Colors.white, size: 28),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+      ],
     );
   }
 }
