@@ -52,7 +52,7 @@ class Movie {
       datesPerVenue: (json['datesPerVenue'] as Map?)?.map(
         (k, v) => MapEntry(k.toString(), List<String>.from(v)),
       ),
-      isClaimed: json['isClaimed'] ?? false, // ✅ από backend
+      isClaimed: json['isClaimed'] ?? false,
     );
   }
 }

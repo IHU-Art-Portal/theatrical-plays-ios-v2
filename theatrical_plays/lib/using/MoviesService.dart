@@ -22,15 +22,22 @@ class MoviesService {
       Map<int, List<DateTime>> productionDates = {};
       Map<int, int?> productionVenues = {};
       Map<int, Map<int, List<DateTime>>> productionVenueDates = {};
-      Map<int, String> priceRanges =
-          {}; // 👉 Για να αποθηκεύσουμε την τιμή "από"
+      Map<int, String> priceRanges = {};
+      Map<int, bool> productionClaimedStatus =
+          {}; // 👉 Track claimed per production
 
       if (eventsResponse.statusCode == 200) {
         final eventsJson = jsonDecode(eventsResponse.body);
         final List<dynamic> eventResults = eventsJson['data']['results'];
+        Map<int, bool> productionClaimedStatus =
+            {}; // Κρατάει ποια productions έχουν claimed event
 
         for (var event in eventResults) {
           final int? productionId = event['productionId'];
+          final bool isEventClaimed = event['isClaimed'] == true;
+          if (isEventClaimed && productionId != null) {
+            productionClaimedStatus[productionId] = true;
+          }
           final String? dateStr = event['dateEvent'];
           final int? venueId = event['venueId'];
           final String? price = event['priceRange'];
@@ -40,16 +47,19 @@ class MoviesService {
             productionDates.putIfAbsent(productionId, () => []).add(date);
             productionVenues[productionId] = venueId;
 
-            // Τιμή ανά παράσταση (πρώτη που θα βρει)
             if (!priceRanges.containsKey(productionId) && price != null) {
               priceRanges[productionId] = price;
             }
 
-            // Ομαδοποίηση ημερομηνιών ανά venue
             productionVenueDates.putIfAbsent(productionId, () => {});
             productionVenueDates[productionId]!
                 .putIfAbsent(venueId, () => [])
                 .add(date);
+
+            final bool isEventClaimed = event['claimed'] == true;
+            if (isEventClaimed) {
+              productionClaimedStatus[productionId] = true;
+            }
           }
         }
       } else {
@@ -95,9 +105,8 @@ class MoviesService {
       for (var item in results) {
         final int id = item['id'];
 
-        // Αν δεν έχει event, την αγνοούμε
         if (!productionDates.containsKey(id)) {
-          print("Skipping production $id: No associated events found");
+          // print("Skipping production $id: No associated events found");
           continue;
         }
 
@@ -149,8 +158,11 @@ class MoviesService {
           type: inferredType,
           dates: dates,
           datesPerVenue: groupedDates,
-          priceRange: priceRanges[id], // 👈 Εδώ περνάμε την τιμή από τα events
+          priceRange: priceRanges[id],
+          isClaimed: productionClaimedStatus[id] ?? false,
         );
+        print(
+            'Production ${item['title']} - isClaimed: ${productionClaimedStatus[id] ?? false}');
 
         movies.add(movie);
       }
@@ -161,6 +173,36 @@ class MoviesService {
       print("❌ Σφάλμα στο fetchMovies: $e");
       return [];
     }
+  }
+
+  static Future<bool> isProductionClaimedLive(int productionId) async {
+    final headers = {
+      "Accept": "application/json",
+      "authorization":
+          "${await AuthorizationStore.getStoreValue("authorization")}"
+    };
+
+    final uri =
+        Uri.parse("http://${Constants().hostName}/api/events?page=1&size=9999");
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      final List<dynamic> events = json['data']['results'];
+
+      final productionEvents =
+          events.where((e) => e['productionId'] == productionId).toList();
+      print(
+          "🔍 Found ${productionEvents.length} events for production $productionId");
+
+      for (var event in productionEvents) {
+        print("🔍 Event ${event['id']} isClaimed: ${event['isClaimed']}");
+        if (event['isClaimed'] == true) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   // Φέρνει τον τίτλο για κάθε organizer
@@ -270,6 +312,8 @@ class MoviesService {
 
       for (var event in events) {
         if (event['productionId'] == productionId) {
+          print(
+              '👉 Event για productionId $productionId: isClaimed: ${event['isClaimed']}');
           return event['id']; // επέστρεψε το πρώτο eventId
         }
       }

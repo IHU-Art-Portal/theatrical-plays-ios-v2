@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:theatrical_plays/models/Movie.dart';
 import 'package:theatrical_plays/pages/movies/MoviePeopleSection.dart';
 import 'package:theatrical_plays/using/ExpandableDescription.dart';
@@ -10,6 +9,7 @@ import 'package:theatrical_plays/using/MoviesService.dart';
 import 'package:theatrical_plays/using/UserService.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:theatrical_plays/pages/movies/EditMoviePage.dart';
 
 class MovieInfo extends StatefulWidget {
   final int movieId;
@@ -22,11 +22,47 @@ class MovieInfo extends StatefulWidget {
 class _MovieInfoState extends State<MovieInfo> {
   Movie? movie;
   String? selectedVenue;
+  Map<String, dynamic>? userProfile;
+  bool isProductionClaimedLive = false;
 
   @override
   void initState() {
     super.initState();
+    _loadUser();
     _loadMovie();
+    _checkProductionClaim();
+  }
+
+  Future<void> _checkProductionClaim() async {
+    final claimed = await MoviesService.isProductionClaimedLive(widget.movieId);
+    setState(() {
+      isProductionClaimedLive = claimed;
+    });
+  }
+
+  Future<void> _loadUser() async {
+    final profile = await UserService.fetchUserProfile();
+    if (profile != null) {
+      print("✅ User Profile Loaded: $profile");
+      setState(() {
+        userProfile = profile;
+      });
+    } else {
+      print("❌ User Profile Not Loaded");
+    }
+  }
+
+  bool userOwnsProduction() {
+    if (movie == null || userProfile == null) return false;
+
+    final claimedEvents = userProfile!['claimedEvents'] ?? [];
+    print(
+        "🔍 Checking ownership for production ${movie!.id} in claimedEvents: $claimedEvents");
+
+    final owns =
+        claimedEvents.any((event) => event['productionId'] == movie!.id);
+    print("🔍 Ownership Check Result: $owns");
+    return owns;
   }
 
   Future<void> _loadMovie() async {
@@ -38,23 +74,37 @@ class _MovieInfoState extends State<MovieInfo> {
   }
 
   Future<void> claimProduction() async {
-    if (movie?.datesPerVenue?.isEmpty ?? true) return;
+    if (movie?.datesPerVenue?.isEmpty ?? true) {
+      showAwesomeNotification("Δεν υπάρχουν διαθέσιμα events.",
+          title: "⚠️ Σφάλμα");
+      return;
+    }
 
-    // Πάρε το πρώτο event ID που μπορείς (θα το φέρουμε πιο σωστά μετά)
     final productionId = movie!.id;
+    print("🚀 Ξεκινάω claim για productionId: $productionId");
+
     final eventId =
         await MoviesService.getFirstEventIdForProduction(productionId);
 
     if (eventId == null) {
+      print("❌ Δεν βρέθηκε event για productionId: $productionId");
       showAwesomeNotification("Δεν βρέθηκε διαθέσιμο event",
           title: "⚠️ Σφάλμα");
       return;
     }
 
+    print("👉 Βρέθηκε eventId: $eventId - Προχωράω σε claim...");
+
     final success = await UserService.claimEvent(eventId);
 
+    print("📩 Αποτέλεσμα claim: ${success ? "Επιτυχία" : "Αποτυχία"}");
+
     if (success) {
-      showAwesomeNotification("Το αίτημα στάλθηκε", title: "✅ Επιτυχία");
+      await _loadUser(); // Φορτώνουμε ξανά το userProfile με το νέο claimed event
+      await _loadMovie(); // Φορτώνουμε ξανά το production με το isClaimed ενημερωμένο
+      await _checkProductionClaim(); // Κάνουμε live check για σιγουριά
+      showAwesomeNotification("Το αίτημα εγκρίθηκε αυτόματα",
+          title: "✅ Επιτυχία");
     } else {
       showAwesomeNotification("Αποτυχία αιτήματος", title: "❌ Αποτυχία");
     }
@@ -96,18 +146,23 @@ class _MovieInfoState extends State<MovieInfo> {
                   left: 16,
                   child: BackButton(color: Colors.white),
                 ),
-                Positioned(
-                  top: 40,
-                  right: 16,
-                  child: GestureDetector(
-                    onTap: claimProduction,
-                    child: Tooltip(
-                      message: "Κάνε αίτημα διεκδίκησης",
-                      child: Icon(Icons.verified_outlined,
-                          color: Colors.amber, size: 30),
+                if (userOwnsProduction())
+                  Positioned(
+                    top: 40,
+                    right: 16,
+                    child: IconButton(
+                      icon: const Icon(Icons.edit,
+                          color: Colors.greenAccent, size: 30),
+                      tooltip: "Επεξεργασία παράστασης",
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => EditMoviePage(movie: movie!)),
+                        );
+                      },
                     ),
                   ),
-                ),
               ],
             ),
             Padding(
@@ -134,6 +189,25 @@ class _MovieInfoState extends State<MovieInfo> {
                             color: Colors.greenAccent),
                       ),
                     ),
+                  const SizedBox(height: 12),
+                  if (userOwnsProduction())
+                    Container()
+                  else if (isProductionClaimedLive)
+                    ElevatedButton(
+                      onPressed: null,
+                      child: const Text('ΗΔΗ ΔΙΕΚΔΙΚΗΜΕΝΟ',
+                          style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey),
+                    )
+                  else
+                    ElevatedButton(
+                      onPressed: claimProduction,
+                      child: const Text('ΑΙΤΗΜΑ ΔΙΕΚΔΙΚΗΣΗΣ',
+                          style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent),
+                    )
                 ],
               ),
             ),
@@ -159,76 +233,20 @@ class _MovieInfoState extends State<MovieInfo> {
                   const SizedBox(height: 24),
                   if (movie!.datesPerVenue != null &&
                       movie!.datesPerVenue!.isNotEmpty)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Επίλεξε θέατρο',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[850],
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.white24),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton2<String>(
-                              isExpanded: true,
-                              value: selectedVenue,
-                              onChanged: (val) =>
-                                  setState(() => selectedVenue = val),
-                              items: movie!.datesPerVenue!.keys
-                                  .map((v) => DropdownMenuItem(
-                                      value: v, child: Text(v)))
-                                  .toList(),
-                              iconStyleData: const IconStyleData(
-                                icon: Icon(Icons.arrow_drop_down,
-                                    color: Colors.white),
-                              ),
-                              dropdownStyleData: DropdownStyleData(
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[900],
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        if (selectedVenue != null)
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: movie!.datesPerVenue![selectedVenue]!
-                                .map((d) => _dateChip(d))
-                                .toList(),
-                          ),
-                      ],
-                    )
-                  else
-                    const Padding(
-                      padding: EdgeInsets.only(top: 16),
-                      child: Text('Δεν υπάρχουν διαθέσιμες ημερομηνίες.',
-                          style: TextStyle(color: Colors.white60)),
-                    ),
+                    buildVenueSection(),
                   const SizedBox(height: 24),
                   if (movie!.ticketUrl != null &&
                       movie!.ticketUrl!.trim().isNotEmpty)
-                    ElevatedButton.icon(
+                    ElevatedButton(
                       onPressed: () => launchUrl(Uri.parse(movie!.ticketUrl!)),
-                      icon: const Icon(Icons.local_activity_outlined),
-                      label: const Text('Αγορά Εισιτηρίου'),
+                      child: const Text('ΑΓΟΡΑ ΕΙΣΙΤΗΡΙΟΥ'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: Colors.black,
                         minimumSize: const Size(double.infinity, 48),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                 ],
@@ -243,6 +261,57 @@ class _MovieInfoState extends State<MovieInfo> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget buildVenueSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Επίλεξε θέατρο',
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.grey[850],
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.white24),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton2<String>(
+              isExpanded: true,
+              value: selectedVenue,
+              onChanged: (val) => setState(() => selectedVenue = val),
+              items: movie!.datesPerVenue!.keys
+                  .map((v) => DropdownMenuItem(value: v, child: Text(v)))
+                  .toList(),
+              iconStyleData: const IconStyleData(
+                icon: Icon(Icons.arrow_drop_down, color: Colors.white),
+              ),
+              dropdownStyleData: DropdownStyleData(
+                decoration: BoxDecoration(
+                  color: Colors.grey[900],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (selectedVenue != null)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: movie!.datesPerVenue![selectedVenue]!
+                .map((d) => _dateChip(d))
+                .toList(),
+          ),
+      ],
     );
   }
 
