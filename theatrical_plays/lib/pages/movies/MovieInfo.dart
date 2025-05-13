@@ -56,12 +56,15 @@ class _MovieInfoState extends State<MovieInfo> {
     if (movie == null || userProfile == null) return false;
 
     final claimedEvents = userProfile!['claimedEvents'] ?? [];
-    print(
-        "🔍 Checking ownership for production ${movie!.id} in claimedEvents: $claimedEvents");
+    print("🟢 Claimed Events: $claimedEvents");
+    print("🟢 Checking for Production ID: ${movie!.id}");
 
-    final owns =
-        claimedEvents.any((event) => event['productionId'] == movie!.id);
-    print("🔍 Ownership Check Result: $owns");
+    final owns = claimedEvents.any((event) {
+      print("🟢 Event ProductionId: ${event['productionId']}");
+      return event['productionId'] == movie!.id;
+    });
+
+    print("🟢 Owns Production Result: $owns");
     return owns;
   }
 
@@ -146,23 +149,6 @@ class _MovieInfoState extends State<MovieInfo> {
                   left: 16,
                   child: BackButton(color: Colors.white),
                 ),
-                if (userOwnsProduction())
-                  Positioned(
-                    top: 40,
-                    right: 16,
-                    child: IconButton(
-                      icon: const Icon(Icons.edit,
-                          color: Colors.greenAccent, size: 30),
-                      tooltip: "Επεξεργασία παράστασης",
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => EditMoviePage(movie: movie!)),
-                        );
-                      },
-                    ),
-                  ),
               ],
             ),
             Padding(
@@ -173,9 +159,10 @@ class _MovieInfoState extends State<MovieInfo> {
                   Text(
                     movie!.title,
                     style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                   if (movie!.priceRange != null &&
                       movie!.priceRange!.isNotEmpty)
@@ -184,14 +171,29 @@ class _MovieInfoState extends State<MovieInfo> {
                       child: Text(
                         movie!.priceRange!,
                         style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.greenAccent),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.greenAccent,
+                        ),
                       ),
                     ),
                   const SizedBox(height: 12),
+
+                  /// Εμφάνιση κουμπιών διεκδίκησης ή επεξεργασίας
                   if (userOwnsProduction())
-                    Container()
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => EditMoviePage(movie: movie!)),
+                        );
+                      },
+                      icon: const Icon(Icons.edit, color: Colors.white),
+                      label: const Text('Επεξεργασία Παράστασης'),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green),
+                    )
                   else if (isProductionClaimedLive)
                     ElevatedButton(
                       onPressed: null,
@@ -207,7 +209,7 @@ class _MovieInfoState extends State<MovieInfo> {
                           style: TextStyle(color: Colors.white)),
                       style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.redAccent),
-                    )
+                    ),
                 ],
               ),
             ),

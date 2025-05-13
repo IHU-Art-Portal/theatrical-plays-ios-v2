@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:theatrical_plays/models/Movie.dart';
+import 'package:theatrical_plays/using/MoviesService.dart'; // Πρόσθεσε αυτό στην αρχή αν δεν υπάρχει
 
 // Εδώ θα επεξεργαζόμαστε μια παράσταση (τίτλος, περιγραφή, url κλπ)
 class EditMoviePage extends StatefulWidget {
@@ -48,12 +49,23 @@ class _EditMoviePageState extends State<EditMoviePage> {
   }
 
   // τι κάνουμε όταν πατήσει αποθήκευση
-  void save() {
-    print('Τίτλος: ${titleCtrl.text}');
-    print('Περιγραφή: ${descCtrl.text}');
-    print('URL: ${urlCtrl.text}');
-    notify('Οι αλλαγές αποθηκεύτηκαν τοπικά (προσωρινά)');
-    Navigator.pop(context);
+  void save() async {
+    final success = await MoviesService.updateProduction(
+      productionId: widget.movie.id,
+      title: titleCtrl.text,
+      description: descCtrl.text,
+      ticketUrl: urlCtrl.text,
+      producer: widget.movie.producer,
+      mediaUrl: widget.movie.mediaUrl,
+      duration: widget.movie.duration,
+    );
+
+    if (success) {
+      notify('Οι αλλαγές αποθηκεύτηκαν με επιτυχία ✅');
+      Navigator.pop(context);
+    } else {
+      notify('❌ Κάτι πήγε στραβά. Δοκίμασε ξανά.');
+    }
   }
 
   @override

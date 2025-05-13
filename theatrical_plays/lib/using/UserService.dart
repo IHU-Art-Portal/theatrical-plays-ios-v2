@@ -52,6 +52,7 @@ class UserService {
           "userImages": images, // ✅ Επιστρέφουμε τις φωτογραφίες του χρήστη
           "profilePhoto": jsonData['data']["profilePhoto"] ?? {},
           "username": jsonData['data']["username"] ?? "",
+          "claimedEvents": jsonData['data']["claimedEvents"] ?? [],
         };
       } else {
         print("❌ Σφάλμα στο API: ${response.statusCode}");

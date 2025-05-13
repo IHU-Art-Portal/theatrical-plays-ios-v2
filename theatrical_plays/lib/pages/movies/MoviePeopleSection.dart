@@ -33,6 +33,7 @@ class _MoviePeopleSectionState extends State<MoviePeopleSection> {
     try {
       Uri uri = Uri.parse(
           "http://${Constants().hostName}/api/productions/$movieId/people");
+
       Response data = await get(uri, headers: {
         "Accept": "application/json",
         "authorization":

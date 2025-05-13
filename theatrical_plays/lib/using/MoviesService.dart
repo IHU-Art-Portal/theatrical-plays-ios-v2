@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:theatrical_plays/models/Movie.dart';
 import 'package:theatrical_plays/using/AuthorizationStore.dart';
 import 'package:theatrical_plays/using/Constants.dart';
+import 'package:theatrical_plays/models/RelatedActor.dart';
 
 class MoviesService {
   // Φέρνει όλες τις παραστάσεις από το backend (Productions)
@@ -295,6 +296,31 @@ class MoviesService {
     }
   }
 
+  static Future<List<RelatedActor>> fetchActorsForProduction(
+      int productionId) async {
+    final headers = {
+      "Accept": "application/json",
+      "authorization":
+          "${await AuthorizationStore.getStoreValue("authorization")}"
+    };
+
+    final uri = Uri.parse(
+        "http://${Constants().hostName}/api/productions/$productionId/actors");
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+      final List<dynamic> results = jsonData['data'];
+      return results
+          .map((actorJson) => RelatedActor.fromJson(actorJson))
+          .toList();
+    } else {
+      print(
+          "❌ Failed to fetch actors for production $productionId: ${response.statusCode}");
+      return [];
+    }
+  }
+
   static Future<int?> getFirstEventIdForProduction(int productionId) async {
     final headers = {
       "Accept": "application/json",
@@ -319,5 +345,41 @@ class MoviesService {
       }
     }
     return null;
+  }
+
+  static Future<bool> updateProduction({
+    required int productionId,
+    required String title,
+    required String description,
+    required String ticketUrl,
+    String? producer,
+    String? mediaUrl,
+    String? duration,
+  }) async {
+    final headers = {
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+      "Authorization":
+          "${await AuthorizationStore.getStoreValue("authorization")}"
+    };
+
+    final body = jsonEncode({
+      "title": title,
+      "description": description,
+      "url": ticketUrl,
+      "producer": producer,
+      "mediaUrl": mediaUrl,
+      "duration": duration,
+    });
+
+    final uri = Uri.parse(
+        "http://${Constants().hostName}/api/productions/$productionId");
+
+    final response = await http.put(uri, headers: headers, body: body);
+
+    print("📤 Update Production Request: $body");
+    print("📩 Response: ${response.statusCode} ${response.body}");
+
+    return response.statusCode == 200;
   }
 }
