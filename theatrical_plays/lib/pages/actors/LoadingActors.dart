@@ -83,7 +83,7 @@ class _LoadingActorsState extends State<LoadingActors> {
         future: loadActors(),
         builder: (BuildContext context, AsyncSnapshot<List<Actor>> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Loading(); // Show loading while data is fetched
+            return TheaterSeatsLoading(); // Show loading while data is fetched
           } else if (snapshot.hasError) {
             return Center(child: Text("Error loading data"));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {

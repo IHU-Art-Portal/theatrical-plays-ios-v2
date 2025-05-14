@@ -31,7 +31,7 @@ class _LoadingMoviesState extends State<LoadingMovies> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: allMovies.isEmpty
-          ? Loading()
+          ? TheaterSeatsLoading()
           : Movies(
               movies: allMovies,
               selectedDate: selectedDate,

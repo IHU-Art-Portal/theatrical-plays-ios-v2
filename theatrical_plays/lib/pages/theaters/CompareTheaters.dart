@@ -64,7 +64,7 @@ class _CompareTheatersState extends State<CompareTheaters> {
         builder: (BuildContext context,
             AsyncSnapshot<List<ChartTheater>?> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Loading(); // Show loading indicator
+            return const TheaterSeatsLoading(); // Show loading indicator
           } else if (snapshot.hasError) {
             return Center(
               child: Text("Error loading data"),

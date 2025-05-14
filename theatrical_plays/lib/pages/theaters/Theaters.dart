@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:theatrical_plays/models/Theater.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/SearchWidget.dart';
+import 'package:theatrical_plays/pages/theaters/TheaterGrid.dart';
 
 import 'CompareTheaters.dart';
 import 'TheaterInfo.dart';
@@ -44,58 +45,7 @@ class _TheatersState extends State<Theaters> {
                 hintText: 'Theater name',
                 onChanged: searchTheaters),
             Expanded(
-              child: ListView.builder(
-                  itemCount: theaters.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      onTap: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => TheaterInfo(
-                                    theaterId: theaters[index].id)));
-                      },
-                      leading: Padding(
-                        padding: const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
-                        child: CircleAvatar(
-                          radius: 30.0,
-                          backgroundColor: Colors.white,
-                          backgroundImage: NetworkImage(
-                              'https://thumbs.dreamstime.com/z/location-pin-icon-165980583.jpg'),
-                        ),
-                      ),
-                      title: Text(
-                        theaters[index].title,
-                        style: TextStyle(color: colors.accent),
-                      ),
-                      subtitle: Text(
-                        theaters[index].address, // Handle nullable address
-                        style: TextStyle(color: colors.primaryText),
-                      ),
-                      trailing: theaters[index].isSelected
-                          ? Icon(
-                              Icons.check_circle,
-                              color: colors.accent,
-                            )
-                          : Icon(
-                              Icons.check_circle_outline,
-                              color: colors.secondaryText,
-                            ),
-                      onLongPress: () {
-                        setState(() {
-                          theaters[index].isSelected =
-                              !theaters[index].isSelected;
-                          print("Clicked");
-                          if (theaters[index].isSelected) {
-                            selectedTheaters.add(theaters[index]);
-                          } else {
-                            selectedTheaters.removeWhere(
-                                (element) => element.id == theaters[index].id);
-                          }
-                        });
-                      },
-                    );
-                  }),
+              child: TheaterGrid(theaters: theaters),
             ),
             if (selectedTheaters.isNotEmpty)
               Padding(

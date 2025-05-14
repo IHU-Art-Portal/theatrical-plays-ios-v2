@@ -11,16 +11,16 @@ class MyColors {
   final Color iconColor;
 
   MyColors._light()
-      : background = Color(0xFFFAF3E0), // Light beige (θεατρική κομψότητα)
-        primaryText = Color(0xFF2C2C2C), // Charcoal black (ευανάγνωστο)
-        secondaryText = Color(0xFF6B6B6B), // Soft gray (υποστηρικτικό κείμενο)
-        accent = Color(0xFFD7263D), // Bold μπορντό (θεατρικό στοιχείο)
-        iconColor = Color(0xFF444444); // Σκούρο γκρι (minimal icons)
+      : background = const Color(0xFFFFFFFF), // White
+        primaryText = const Color(0xFF1E1E1E), // Near Black
+        secondaryText = const Color(0xFF8E8E93), // Soft Gray
+        accent = const Color(0xFF00BFA6), // Neon Teal
+        iconColor = const Color(0xFF1E1E1E); // Same as Primary
 
   MyColors._dark()
-      : background = Color(0xFF121212), // Dark charcoal (κομψό μαύρο)
-        primaryText = Color(0xFFEFEFEF), // Απαλό λευκό (για readability)
-        secondaryText = Color(0xFFB3B3B3), // Γκρι για δευτερεύον κείμενο
-        accent = Color(0xFFFFC107), // Χρυσό (σαν φώτα σκηνής)
-        iconColor = Color(0xFFE0E0E0); // Ανοιχτό γκρι (καθαρά εικονίδια)
+      : background = const Color(0xFF0D0D0D), // Absolute Black
+        primaryText = const Color(0xFFFFFFFF), // White
+        secondaryText = const Color(0xFFA1A1AA), // Muted Gray
+        accent = const Color(0xFF00BFA6), // Neon Teal
+        iconColor = const Color(0xFFFFFFFF); // White
 }

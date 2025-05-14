@@ -122,7 +122,7 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
         title: Text(widget.actor.fullName, style: TextStyle(color: clr.accent)),
       ),
       body: isLoading
-          ? Center(child: Loading())
+          ? Center(child: TheaterSeatsLoading())
           : Stack(
               children: [
                 GestureDetector(

@@ -6,6 +6,8 @@ import 'package:theatrical_plays/pages/movies/MovieInfo.dart';
 import 'package:theatrical_plays/using/AuthorizationStore.dart';
 import 'package:theatrical_plays/using/Constants.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
+import 'package:theatrical_plays/pages/theaters/ProductionGrid.dart';
+import 'package:theatrical_plays/using/Loading.dart';
 
 class TheaterMovieSection extends StatefulWidget {
   final int theaterId;
@@ -23,24 +25,41 @@ class _TheaterMovieSectionState extends State<TheaterMovieSection> {
 
   _TheaterMovieSectionState(this.theaterId);
 
-  Future<List<Movie>?> loadRelatedMovies() async {
+  Future<List<Map<String, dynamic>>> loadRelatedMovies() async {
     try {
       Uri uri = Uri.parse(
-          "http://${Constants().hostName}:8080/api/venues/$theaterId/productions");
-      http.Response response = await http.get(uri, headers: {
+          "http://${Constants().hostName}/api/shows?venueId=$theaterId");
+
+      print("🔍 Φόρτωση παραστάσεων για venueId: $theaterId");
+
+      final response = await http.get(uri, headers: {
         "Accept": "application/json",
         "authorization":
             "${await AuthorizationStore.getStoreValue("authorization")}"
       });
-      var jsonData = jsonDecode(response.body);
 
-      for (var item in jsonData['data']['content'] ?? []) {
-        relatedMovies.add(Movie.fromJson(item));
+      var jsonData = jsonDecode(response.body);
+      var shows = jsonData['data']['results'] ?? [];
+
+      Set<int> uniqueProductionIds = {};
+      List<Map<String, dynamic>> productions = [];
+
+      for (var item in shows) {
+        var productionId = item['production']?['id'];
+        if (productionId != null &&
+            !uniqueProductionIds.contains(productionId)) {
+          uniqueProductionIds.add(productionId);
+          var productionDetails = await fetchProductionDetails(productionId);
+          if (productionDetails != null) {
+            productions.add(productionDetails);
+          }
+        }
       }
-      return relatedMovies;
+
+      return productions;
     } catch (e) {
-      print('Error fetching related movies: $e');
-      return null;
+      print('❌ Σφάλμα κατά τη φόρτωση παραστάσεων: $e');
+      return [];
     }
   }
 
@@ -50,11 +69,12 @@ class _TheaterMovieSectionState extends State<TheaterMovieSection> {
     final isDarkMode = theme.brightness == Brightness.dark;
     final colors = isDarkMode ? MyColors.dark : MyColors.light;
 
-    return FutureBuilder<List<Movie>?>(
+    return FutureBuilder<List<Map<String, dynamic>>>(
       future: loadRelatedMovies(),
-      builder: (BuildContext context, AsyncSnapshot<List<Movie>?> snapshot) {
+      builder: (BuildContext context,
+          AsyncSnapshot<List<Map<String, dynamic>>> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
+          return const Center(child: TheaterSeatsLoading());
         } else if (snapshot.hasError) {
           return Center(
             child: Text("Error loading data",
@@ -63,42 +83,45 @@ class _TheaterMovieSectionState extends State<TheaterMovieSection> {
         } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return Center(
             child: Text(
-              'There are no available movies',
+              'Δεν υπάρχουν διαθέσιμες παραστάσεις',
               style: TextStyle(color: colors.accent, fontSize: 18),
             ),
           );
         } else {
-          return ListView.builder(
-            physics: NeverScrollableScrollPhysics(),
-            shrinkWrap: true,
-            itemCount: relatedMovies.length,
-            itemBuilder: (context, index) {
-              return ListTile(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MovieInfo(relatedMovies[index].id),
-                    ),
-                  );
-                },
-                leading: Padding(
-                  padding: const EdgeInsets.fromLTRB(0.0, 5.0, 0.0, 5.0),
-                  child: CircleAvatar(
-                    radius: 30.0,
-                    backgroundImage:
-                        NetworkImage(relatedMovies[index].mediaUrl ?? ''),
-                  ),
-                ),
-                title: Text(
-                  relatedMovies[index].title,
-                  style: TextStyle(color: colors.accent),
-                ),
-              );
-            },
-          );
+          final productions = snapshot.data!;
+          return ProductionGrid(productions: productions);
         }
       },
     );
+  }
+
+  Future<Map<String, dynamic>?> fetchProductionDetails(int productionId) async {
+    try {
+      Uri uri = Uri.parse(
+          "http://${Constants().hostName}/api/productions/$productionId");
+
+      final response = await http.get(uri, headers: {
+        "Accept": "application/json",
+        "authorization":
+            "${await AuthorizationStore.getStoreValue("authorization")}"
+      });
+
+      if (response.statusCode == 200) {
+        var jsonData = jsonDecode(response.body);
+        var data = jsonData['data'];
+        return {
+          'id': data['id'],
+          'title': data['title'] ?? 'Χωρίς τίτλο',
+          'mediaUrl': data['mediaUrl'] ?? '',
+          'description': data['description'] ?? '',
+        };
+      } else {
+        print('⚠️ Αποτυχία λήψης λεπτομερειών για παραγωγή $productionId');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Σφάλμα στη λήψη παραγωγής $productionId: $e');
+      return null;
+    }
   }
 }

@@ -10,6 +10,7 @@ import 'package:theatrical_plays/using/UserService.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:theatrical_plays/pages/movies/EditMoviePage.dart';
+import 'package:theatrical_plays/using/Loading.dart';
 
 class MovieInfo extends StatefulWidget {
   final int movieId;
@@ -124,10 +125,7 @@ class _MovieInfoState extends State<MovieInfo> {
   @override
   Widget build(BuildContext context) {
     if (movie == null) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const TheaterSeatsLoading();
     }
 
     return Scaffold(

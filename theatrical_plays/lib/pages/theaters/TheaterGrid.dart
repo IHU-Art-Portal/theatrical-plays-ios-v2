@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:theatrical_plays/models/Movie.dart';
+import 'package:theatrical_plays/models/Theater.dart';
+import 'package:theatrical_plays/pages/theaters/TheaterInfo.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
-import 'package:theatrical_plays/pages/movies/MovieInfo.dart';
 
-class MovieGrid extends StatelessWidget {
-  final List<Movie> movies;
-  const MovieGrid({Key? key, required this.movies}) : super(key: key);
+class TheaterGrid extends StatelessWidget {
+  final List<Theater> theaters;
+
+  const TheaterGrid({Key? key, required this.theaters}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +17,7 @@ class MovieGrid extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0),
       child: GridView.builder(
-        itemCount: movies.length,
+        itemCount: theaters.length,
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
           maxCrossAxisExtent: 200,
           childAspectRatio: 0.65,
@@ -24,19 +25,19 @@ class MovieGrid extends StatelessWidget {
           mainAxisSpacing: 16,
         ),
         itemBuilder: (context, index) {
-          final movie = movies[index];
+          final theater = theaters[index];
 
           return GestureDetector(
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => MovieInfo(movie.id),
+                  builder: (context) => TheaterInfo(theaterId: theater.id),
                 ),
               );
             },
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: AnimatedContainer(
@@ -53,16 +54,10 @@ class MovieGrid extends StatelessWidget {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        movie.mediaUrl ?? '',
+                      child: Image.asset(
+                        'assets/test_files/default_theater.png',
                         fit: BoxFit.cover,
                         width: double.infinity,
-                        errorBuilder: (context, error, stackTrace) =>
-                            Image.asset(
-                          'assets/test_files/no-image.png',
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                        ),
                       ),
                     ),
                   ),
@@ -71,7 +66,7 @@ class MovieGrid extends StatelessWidget {
                 SizedBox(
                   height: 38,
                   child: Text(
-                    movie.title,
+                    theater.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(

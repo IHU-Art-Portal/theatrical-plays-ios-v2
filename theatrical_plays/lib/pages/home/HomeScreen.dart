@@ -4,6 +4,7 @@ import 'package:theatrical_plays/models/Movie.dart';
 import 'package:theatrical_plays/models/Theater.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:http/http.dart' as http;
+import 'package:theatrical_plays/using/Loading.dart';
 import 'package:theatrical_plays/pages/home/widgets/actor_card.dart';
 import 'package:theatrical_plays/pages/home/widgets/theater_card.dart';
 import 'package:theatrical_plays/pages/home/widgets/movie_card.dart';
@@ -45,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
         future: futureData,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const TheaterSeatsLoading();
           } else if (snapshot.hasError) {
             return Center(
                 child: Text("Error loading data",

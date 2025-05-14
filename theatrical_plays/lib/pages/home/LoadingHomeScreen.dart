@@ -136,7 +136,7 @@ class _LoadingHomeScreenState extends State<LoadingHomeScreen> {
         future: loadAllData(),
         builder: (BuildContext context, AsyncSnapshot<void> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Loading();
+            return TheaterSeatsLoading();
           } else if (snapshot.hasError) {
             return Center(child: Text("Error loading data"));
           } else {

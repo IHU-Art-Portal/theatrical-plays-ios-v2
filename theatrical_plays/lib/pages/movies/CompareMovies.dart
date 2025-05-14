@@ -72,7 +72,7 @@ class _CompareMoviesState extends State<CompareMovies> {
             builder: (BuildContext context,
                 AsyncSnapshot<List<CompMovie>> snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return Loading();
+                return TheaterSeatsLoading();
               } else if (snapshot.hasError) {
                 return Text("Error loading movies");
               } else if (snapshot.hasData && snapshot.data!.isNotEmpty) {

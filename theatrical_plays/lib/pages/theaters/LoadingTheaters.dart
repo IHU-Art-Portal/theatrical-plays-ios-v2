@@ -60,7 +60,7 @@ class _LoadingTheatersState extends State<LoadingTheaters> {
         builder:
             (BuildContext context, AsyncSnapshot<List<Theater>?> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Loading(); // Display loading indicator while fetching data
+            return TheaterSeatsLoading(); // Display loading indicator while fetching data
           } else if (snapshot.hasError) {
             return Center(child: Text("Error loading data"));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
