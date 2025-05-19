@@ -5,8 +5,13 @@ import 'package:theatrical_plays/using/MyColors.dart';
 
 class TheaterGrid extends StatelessWidget {
   final List<Theater> theaters;
+  final ScrollController? scrollController; // ✅ Προστέθηκε
 
-  const TheaterGrid({Key? key, required this.theaters}) : super(key: key);
+  const TheaterGrid({
+    Key? key,
+    required this.theaters,
+    this.scrollController, // ✅ Προστέθηκε
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +22,7 @@ class TheaterGrid extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12.0),
       child: GridView.builder(
+        controller: scrollController, // ✅ Προστέθηκε
         itemCount: theaters.length,
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
           maxCrossAxisExtent: 200,

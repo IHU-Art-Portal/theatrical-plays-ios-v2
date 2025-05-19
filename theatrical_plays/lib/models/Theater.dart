@@ -12,6 +12,7 @@ class Theater {
   final String address;
   bool isSelected;
   final bool isClaimed;
+  final String? town;
 
   Theater({
     required this.id,
@@ -19,6 +20,7 @@ class Theater {
     required this.address,
     this.isSelected = false, // Default value for isSelected if not provided
     this.isClaimed = false,
+    this.town,
   });
 
   factory Theater.fromJson(Map<String, dynamic> json) {
@@ -27,6 +29,7 @@ class Theater {
       title: json['title'] ?? 'Unknown Title',
       address: json['address'] ?? 'Unknown Address',
       isClaimed: json['isClaimed'] ?? false, // ✅ Εδώ γεμίζει από το API
+      town: json['town'],
     );
   }
 }

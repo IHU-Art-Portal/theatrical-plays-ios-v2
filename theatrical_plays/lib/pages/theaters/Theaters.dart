@@ -1,123 +1,89 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:theatrical_plays/models/Theater.dart';
-import 'package:theatrical_plays/using/MyColors.dart';
-import 'package:theatrical_plays/using/SearchWidget.dart';
 import 'package:theatrical_plays/pages/theaters/TheaterGrid.dart';
-
-import 'CompareTheaters.dart';
-import 'TheaterInfo.dart';
+import 'package:theatrical_plays/using/GreekTransliterator.dart';
+import 'package:theatrical_plays/using/MyColors.dart';
 
 class Theaters extends StatefulWidget {
-  final List<Theater> theaters; // Marking as final and non-nullable
-  Theaters(this.theaters);
+  final List<Theater> theaters;
+
+  const Theaters(this.theaters, {Key? key}) : super(key: key);
 
   @override
-  _TheatersState createState() => _TheatersState(theaters: theaters);
+  State<Theaters> createState() => _TheatersState();
 }
 
 class _TheatersState extends State<Theaters> {
-  late final List<Theater> theaters; // Marking as final and non-nullable
-  _TheatersState({required this.theaters});
-
-  String query = '';
   late List<Theater> theatersToSearch;
-  List<Theater> selectedTheaters = [];
+  late List<Theater> filteredTheaters;
+  Timer? _debounce;
 
   @override
   void initState() {
-    theatersToSearch = List.from(theaters);
     super.initState();
+    theatersToSearch = List.from(widget.theaters);
+    filteredTheaters = List.from(widget.theaters);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-    final colors = isDarkMode ? MyColors.dark : MyColors.light;
+    final colors =
+        theme.brightness == Brightness.dark ? MyColors.dark : MyColors.light;
 
     return Scaffold(
       backgroundColor: colors.background,
-      body: Container(
-        child: Column(
-          children: [
-            SearchWidget(
-                text: query,
-                hintText: 'Theater name',
-                onChanged: searchTheaters),
-            Expanded(
-              child: TheaterGrid(theaters: theaters),
-            ),
-            if (selectedTheaters.isNotEmpty)
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
-                child: Column(
-                  children: [
-                    SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                              // backgroundColor: MyColors().gray,
-                              ),
-                          child: Text(
-                            "Compare (${selectedTheaters.length})",
-                            style:
-                                TextStyle(color: colors.accent, fontSize: 18),
-                          ),
-                          onPressed: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        CompareTheaters(selectedTheaters)));
-                          },
-                        )),
-                    SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                              // backgroundColor: MyColors().gray,
-                              ),
-                          child: Text(
-                            "Clear",
-                            style:
-                                TextStyle(color: colors.accent, fontSize: 18),
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              List<Theater> removeList =
-                                  List.from(selectedTheaters);
-                              for (var removeItem in removeList) {
-                                for (var theater in theaters) {
-                                  if (theater.id == removeItem.id) {
-                                    theater.isSelected = false;
-                                  }
-                                }
-                              }
-                              selectedTheaters.clear();
-                            });
-                          },
-                        ))
-                  ],
-                ),
-              )
-          ],
-        ),
+      body: Column(
+        children: [
+          _buildSearchBar(colors),
+          Expanded(child: TheaterGrid(theaters: filteredTheaters)),
+        ],
       ),
     );
   }
 
-  Future<void> searchTheaters(String query) async {
-    final search = theatersToSearch.where((theater) {
-      final searchTheater = theater.title.toLowerCase();
-      final searchLower = query.toLowerCase();
+  Widget _buildSearchBar(dynamic colors) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: TextField(
+        decoration: InputDecoration(
+          hintText: 'Αναζήτηση θεάτρου',
+          prefixIcon: Icon(Icons.search, color: colors.accent),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          filled: true,
+          fillColor: colors.background,
+        ),
+        onChanged: _onSearchChanged,
+        style: TextStyle(color: colors.accent),
+      ),
+    );
+  }
 
-      return searchTheater.contains(searchLower);
-    }).toList();
+  void _onSearchChanged(String value) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _performSearch(value);
+    });
+  }
+
+  void _performSearch(String query) {
+    final lowerQuery = query.toLowerCase();
+    final transliteratedQuery = GreekTransliterator.transliterate(lowerQuery);
 
     setState(() {
-      this.query = query;
-      theaters = query.isEmpty ? theatersToSearch : search;
+      if (query.trim().isEmpty) {
+        filteredTheaters = List.from(theatersToSearch);
+      } else {
+        filteredTheaters = theatersToSearch.where((theater) {
+          final titleLower = theater.title.toLowerCase();
+          final titleTransliterated =
+              GreekTransliterator.transliterate(titleLower);
+          return titleLower.contains(lowerQuery) ||
+              titleTransliterated.contains(transliteratedQuery);
+        }).toList();
+      }
     });
   }
 }

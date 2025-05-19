@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:theatrical_plays/models/Actor.dart';
@@ -5,6 +7,10 @@ import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/SearchWidget.dart';
 import 'package:theatrical_plays/pages/actors/widgets/ActorGrid.dart';
 import 'package:theatrical_plays/pages/actors/widgets/ActorFiltersDialog.dart';
+import 'package:theatrical_plays/using/GreekTransliterator.dart';
+import 'package:theatrical_plays/using/Constants.dart';
+import 'package:http/http.dart' as http;
+import 'package:theatrical_plays/using/globals.dart';
 
 class Actors extends StatefulWidget {
   final List<Actor> actorList;
@@ -19,6 +25,7 @@ class _ActorsState extends State<Actors> {
   List<Actor> actorList;
   List<Actor> searchPool = [];
   String searchTxt = '';
+  Timer? _debounce;
 
   _ActorsState({required this.actorList});
 
@@ -27,8 +34,7 @@ class _ActorsState extends State<Actors> {
     super.initState();
     searchPool = List.from(actorList);
     actorList.sort(
-      (a, b) => a.fullName.toLowerCase().compareTo(b.fullName.toLowerCase()),
-    );
+        (a, b) => a.fullName.toLowerCase().compareTo(b.fullName.toLowerCase()));
   }
 
   @override
@@ -49,29 +55,75 @@ class _ActorsState extends State<Actors> {
     );
   }
 
+  // Συνδεδεμένο με το Debounced API Search
   Widget buildSearch() => SearchWidget(
         text: searchTxt,
         hintText: 'Αναζήτηση ονόματος',
-        onChanged: searchActors,
+        onChanged: onSearchChanged,
       );
 
-  Future<void> searchActors(String txt) async {
-    final lowerTxt = txt.toLowerCase();
-    final filtered = searchPool.where((actor) {
-      return actor.fullName.toLowerCase().contains(lowerTxt);
-    }).toList();
-
-    setState(() {
-      searchTxt = txt;
-      actorList = txt.isEmpty ? searchPool : filtered;
+  // Debounced Search Handler
+  void onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      performSearch(query);
     });
   }
 
+  // Κάνει API call ή fallback σε τοπική αναζήτηση
+  Future<void> performSearch(String query) async {
+    print('🔍 Αναζήτηση για: $query');
+
+    final transliteratedQuery = GreekTransliterator.transliterate(query);
+    final apiQuery = query;
+
+    final url = Uri.parse(
+        'http://${Constants().hostName}/api/actors/search?query=$apiQuery');
+
+    try {
+      final response = await http.get(url, headers: {
+        "Authorization": "Bearer $globalAccessToken",
+        "Accept": "application/json",
+      });
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          actorList = data['results'];
+        });
+      } else {
+        print('❌ Σφάλμα API, fallback σε τοπική αναζήτηση');
+        _localSearchFallback(query, transliteratedQuery);
+      }
+    } catch (e) {
+      print('❌ Σφάλμα Δικτύου, fallback σε τοπική αναζήτηση');
+      _localSearchFallback(query, transliteratedQuery);
+    }
+  }
+
+  // Τοπικό φιλτράρισμα με transliteration
+  void _localSearchFallback(String query, String transliteratedQuery) {
+    final lowerQuery = query.toLowerCase();
+    final filtered = searchPool.where((actor) {
+      final actorName = actor.fullName.toLowerCase();
+      final actorNameTransliterated =
+          GreekTransliterator.transliterate(actorName);
+      return actorName.contains(lowerQuery) ||
+          actorNameTransliterated.contains(transliteratedQuery);
+    }).toList();
+
+    setState(() {
+      searchTxt = query;
+      actorList = query.isEmpty ? searchPool : filtered;
+    });
+  }
+
+  // Filter Button and Dialog
   Widget _buildFilterButton(dynamic clr) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: GestureDetector(
-        onTap: () => _showFilterDialog(),
+        onTap: _showFilterDialog,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
@@ -101,14 +153,11 @@ class _ActorsState extends State<Actors> {
       builder: (_) => ActorFiltersDialog(
         onApply: (filters) {
           if (filters.isEmpty) {
-            setState(() {
-              actorList = List.from(searchPool);
-            });
+            setState(() => actorList = List.from(searchPool));
             return;
           }
 
-          final List<Actor> filtered = searchPool.where((actor) {
-            // Αν έχει ενεργό φίλτρο ηλικίας
+          final filtered = searchPool.where((actor) {
             if (filters.containsKey('minAge') &&
                 filters.containsKey('maxAge')) {
               if (actor.birthdate == null || actor.birthdate!.isEmpty)
@@ -124,7 +173,6 @@ class _ActorsState extends State<Actors> {
               }
             }
 
-            // Φίλτρο ύψους
             if (filters.containsKey('minHeight') &&
                 filters.containsKey('maxHeight')) {
               final h = _parseHeight(actor.height ?? '');
@@ -133,7 +181,6 @@ class _ActorsState extends State<Actors> {
                   h > filters['maxHeight']) return false;
             }
 
-            // Φίλτρο βάρους
             if (filters.containsKey('minWeight') &&
                 filters.containsKey('maxWeight')) {
               final w = _parseWeight(actor.weight ?? '');
@@ -142,7 +189,6 @@ class _ActorsState extends State<Actors> {
                   w > filters['maxWeight']) return false;
             }
 
-            // Claim filter
             if (filters['claimStatus'] == 'claimed' && !actor.isClaimed)
               return false;
             if (filters['claimStatus'] == 'available' && actor.isClaimed)

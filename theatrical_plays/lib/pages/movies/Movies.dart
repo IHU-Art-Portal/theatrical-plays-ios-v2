@@ -5,6 +5,11 @@ import 'package:theatrical_plays/pages/movies/MovieGrid.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'CompareMovies.dart';
+import 'dart:async';
+import 'dart:convert';
+import 'package:theatrical_plays/using/GreekTransliterator.dart';
+import 'package:http/http.dart' as http;
+import 'package:theatrical_plays/using/Constants.dart';
 
 class Movies extends StatefulWidget {
   final List<Movie> movies;
@@ -26,6 +31,7 @@ class Movies extends StatefulWidget {
 class _MoviesState extends State<Movies> {
   late List<Movie> moviesToSearch;
   List<Movie> selectedMovies = [];
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -34,8 +40,7 @@ class _MoviesState extends State<Movies> {
   }
 
   List<Movie> _filterMovies() {
-    return widget.movies.where((movie) {
-      // Φιλτράρισμα ημερομηνίας
+    return moviesToSearch.where((movie) {
       bool dateMatches = widget.selectedDate == null ||
           movie.dates.any((dateStr) {
             final date = DateTime.tryParse(dateStr);
@@ -45,7 +50,6 @@ class _MoviesState extends State<Movies> {
                 date.day == widget.selectedDate!.day;
           });
 
-      // Φιλτράρισμα χώρου
       bool venueMatches =
           widget.selectedVenue == null || movie.venue == widget.selectedVenue;
 
@@ -81,40 +85,81 @@ class _MoviesState extends State<Movies> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: SizedBox(
         width: screenWidth > 500 ? 450 : screenWidth * 0.95,
-        child: TypeAheadField<Movie>(
-          suggestionsBoxDecoration: SuggestionsBoxDecoration(
-            constraints: BoxConstraints(maxHeight: 220),
-            color: colors.background,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          textFieldConfiguration: TextFieldConfiguration(
-            decoration: InputDecoration(
-              hintText: 'Αναζήτηση παράστασης',
-              prefixIcon: Icon(Icons.search, color: colors.accent),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              filled: true,
-              fillColor: colors.background,
+        child: TextField(
+          decoration: InputDecoration(
+            hintText: 'Αναζήτηση παράστασης',
+            prefixIcon: Icon(Icons.search, color: colors.accent),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-            style: TextStyle(color: colors.accent),
+            filled: true,
+            fillColor: colors.background,
           ),
-          suggestionsCallback: (pattern) => moviesToSearch.where(
-              (m) => m.title.toLowerCase().contains(pattern.toLowerCase())),
-          itemBuilder: (context, movie) => ListTile(
-            title: Text(movie.title, style: TextStyle(color: colors.accent)),
-          ),
-          onSuggestionSelected: (movie) => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => MovieInfo(movie.id)),
-          ),
-          noItemsFoundBuilder: (_) => Padding(
-            padding: const EdgeInsets.all(8),
-            child: Text('Δεν βρέθηκαν αποτελέσματα'),
-          ),
+          onChanged: _onSearchChanged,
+          style: TextStyle(color: colors.accent),
         ),
       ),
     );
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (query.trim().isEmpty) {
+        // ✅ Αν ο χρήστης το καθάρισε, επαναφέρουμε τα αρχικά δεδομένα
+        setState(() {
+          moviesToSearch = List.from(widget.movies);
+        });
+      } else {
+        _performSearch(query);
+      }
+    });
+  }
+
+  Future<void> _performSearch(String query) async {
+    print('🔍 Αναζήτηση για: $query');
+
+    final transliteratedQuery = GreekTransliterator.transliterate(query);
+    final apiQuery = query;
+
+    final url = Uri.parse(
+        'http://${Constants().hostName}/api/productions/search?query=$apiQuery');
+
+    try {
+      final response = await http.get(url, headers: {
+        "Accept": "application/json",
+      });
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          moviesToSearch = (data['results'] as List)
+              .map((json) => Movie.fromJson(json))
+              .toList();
+        });
+      } else {
+        print('❌ Σφάλμα API, fallback σε τοπική αναζήτηση');
+        _localSearchFallback(query, transliteratedQuery);
+      }
+    } catch (e) {
+      print('❌ Σφάλμα Δικτύου, fallback σε τοπική αναζήτηση');
+      _localSearchFallback(query, transliteratedQuery);
+    }
+  }
+
+  void _localSearchFallback(String query, String transliteratedQuery) {
+    final lowerQuery = query.toLowerCase();
+    final filtered = widget.movies.where((m) {
+      final titleLower = m.title.toLowerCase();
+      final titleTransliterated = GreekTransliterator.transliterate(titleLower);
+      return titleLower.contains(lowerQuery) ||
+          titleTransliterated.contains(transliteratedQuery);
+    }).toList();
+
+    setState(() {
+      moviesToSearch = filtered;
+    });
   }
 
   Widget _buildFilterButton(dynamic colors) {

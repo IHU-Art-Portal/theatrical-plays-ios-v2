@@ -1,12 +1,10 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart';
 import 'package:theatrical_plays/models/Theater.dart';
 import 'package:theatrical_plays/using/AuthorizationStore.dart';
 import 'package:theatrical_plays/using/Constants.dart';
 import 'package:theatrical_plays/using/Loading.dart';
-
 import 'Theaters.dart';
 
 class LoadingTheaters extends StatefulWidget {
@@ -17,8 +15,7 @@ class LoadingTheaters extends StatefulWidget {
 class _LoadingTheatersState extends State<LoadingTheaters> {
   List<Theater> theaters = [];
 
-  // Fetch data from the API
-  Future<List<Theater>?> loadTheaters(String query) async {
+  Future<List<Theater>?> loadTheaters() async {
     Uri uri = Uri.parse("http://${Constants().hostName}/api/venues");
     try {
       Response data = await get(uri, headers: {
@@ -28,27 +25,21 @@ class _LoadingTheatersState extends State<LoadingTheaters> {
       });
 
       var jsonData = jsonDecode(data.body);
+      List<dynamic> results = jsonData['data']['results'];
 
-      theaters.clear(); // Clear theaters before loading new data
-      for (var oldTheater in jsonData['data']['results']) {
-        Theater theater = Theater(
-          id: oldTheater['id'] ?? 0,
-          title: oldTheater['title'] ?? 'Unknown Title',
-          address: oldTheater['address'] ?? 'Unknown Address',
+      List<Theater> loadedTheaters = results.map((venue) {
+        return Theater(
+          id: venue['id'] ?? 0,
+          title: venue['title'] ?? 'Άγνωστο Όνομα',
+          address: venue['address'] ?? 'Άγνωστη Διεύθυνση',
           isSelected: false,
         );
-
-        theaters.add(theater);
-      }
-
-      return theaters.where((theater) {
-        final theaterTitleToLowerCase = theater.title.toLowerCase();
-        final queryToLowerCase = query.toLowerCase();
-        return theaterTitleToLowerCase.contains(queryToLowerCase);
       }).toList();
+
+      return loadedTheaters;
     } catch (e) {
-      print('Error fetching data: $e');
-      return null; // Return null in case of an error
+      print('❌ Σφάλμα κατά τη φόρτωση των χώρων: $e');
+      return null;
     }
   }
 
@@ -56,18 +47,16 @@ class _LoadingTheatersState extends State<LoadingTheaters> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: FutureBuilder<List<Theater>?>(
-        future: loadTheaters(''),
-        builder:
-            (BuildContext context, AsyncSnapshot<List<Theater>?> snapshot) {
+        future: loadTheaters(),
+        builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return TheaterSeatsLoading(); // Display loading indicator while fetching data
+            return TheaterSeatsLoading();
           } else if (snapshot.hasError) {
-            return Center(child: Text("Error loading data"));
+            return Center(child: Text("❌ Σφάλμα φόρτωσης δεδομένων"));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text("No theaters available"));
+            return Center(child: Text("Δεν υπάρχουν διαθέσιμοι χώροι"));
           } else {
-            return Theaters(
-                snapshot.data!); // Safely pass data to Theaters widget
+            return Theaters(snapshot.data!);
           }
         },
       ),
