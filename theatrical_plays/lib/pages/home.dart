@@ -274,24 +274,23 @@ class _HomeState extends State<Home> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(
-              "\u0391\u03c0\u03bf\u03c3\u03cd\u03bd\u03b4\u03b5\u03c3\u03b7"),
-          content: Text(
-              "\u0395\u03af\u03c3\u03c4\u03b5 \u03c3\u03af\u03b3\u03bf\u03c5\u03c1\u03bf\u03c2 \u03cc\u03c4\u03b9 \u03b8\u03ad\u03bb\u03b5\u03c4\u03b5 \u03bd\u03b1 \u03b1\u03c0\u03bf\u03c3\u03c5\u03bd\u03b4\u03b5\u03b8\u03b5\u03af\u03c4\u03b5;"),
+          title: Text("Αποσύνδεση"),
+          content: Text("Είστε σίγουρος ότι θέλετε να αποσυνδεθείτε;"),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text("\u0391\u03ba\u03cd\u03c1\u03c9\u03c3\u03b7"),
+              child: Text("Ακύρωση"),
             ),
             TextButton(
               onPressed: () {
                 logout();
               },
               child: Text(
-                  "\u0391\u03c0\u03bf\u03c3\u03cd\u03bd\u03b4\u03b5\u03c3\u03b7",
-                  style: TextStyle(color: Colors.red)),
+                "Αποσύνδεση",
+                style: TextStyle(color: Colors.red),
+              ),
             ),
           ],
         );
