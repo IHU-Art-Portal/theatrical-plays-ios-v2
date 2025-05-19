@@ -4,6 +4,7 @@ import 'package:theatrical_plays/models/Movie.dart';
 import 'package:theatrical_plays/using/AuthorizationStore.dart';
 import 'package:theatrical_plays/using/Constants.dart';
 import 'package:theatrical_plays/models/RelatedActor.dart';
+import 'package:theatrical_plays/models/EventDto.dart';
 
 class MoviesService {
   // Φέρνει όλες τις παραστάσεις από το backend (Productions)
@@ -11,8 +12,8 @@ class MoviesService {
     try {
       final headers = {
         "Accept": "application/json",
-        "authorization":
-            "${await AuthorizationStore.getStoreValue("authorization")}"
+        "Authorization":
+            "Bearer ${await AuthorizationStore.getStoreValue("authorization")}"
       };
 
       // Φέρνουμε όλα τα events για να πάρουμε ημερομηνίες, χώρους και τιμές
@@ -179,8 +180,8 @@ class MoviesService {
   static Future<bool> isProductionClaimedLive(int productionId) async {
     final headers = {
       "Accept": "application/json",
-      "authorization":
-          "${await AuthorizationStore.getStoreValue("authorization")}"
+      "Authorization":
+          "Bearer ${await AuthorizationStore.getStoreValue("authorization")}"
     };
 
     final uri =
@@ -214,8 +215,8 @@ class MoviesService {
       final uri = Uri.parse("http://${Constants().hostName}/api/Organizers");
       final headers = {
         "Accept": "application/json",
-        "authorization":
-            "${await AuthorizationStore.getStoreValue("authorization")}" // Παίρνουμε token
+        "Authorization":
+            "Bearer ${await AuthorizationStore.getStoreValue("authorization")}"
       };
 
       final response = await http.get(uri, headers: headers);
@@ -256,8 +257,8 @@ class MoviesService {
     try {
       final headers = {
         "Accept": "application/json",
-        "authorization":
-            "${await AuthorizationStore.getStoreValue("authorization")}"
+        "Authorization":
+            "Bearer ${await AuthorizationStore.getStoreValue("authorization")}"
       };
 
       final uri = Uri.parse(
@@ -300,12 +301,13 @@ class MoviesService {
       int productionId) async {
     final headers = {
       "Accept": "application/json",
-      "authorization":
-          "${await AuthorizationStore.getStoreValue("authorization")}"
+      "Authorization":
+          "Bearer ${await AuthorizationStore.getStoreValue("authorization")}"
     };
 
-    final uri = Uri.parse(
-        "http://${Constants().hostName}/api/productions/$productionId/actors");
+    final uri =
+        Uri.parse("http://${Constants().hostName}/api/Productions/update");
+
     final response = await http.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
@@ -321,32 +323,6 @@ class MoviesService {
     }
   }
 
-  static Future<int?> getFirstEventIdForProduction(int productionId) async {
-    final headers = {
-      "Accept": "application/json",
-      "authorization":
-          "${await AuthorizationStore.getStoreValue("authorization")}"
-    };
-
-    final uri =
-        Uri.parse("http://${Constants().hostName}/api/events?page=1&size=9999");
-    final response = await http.get(uri, headers: headers);
-
-    if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
-      final List<dynamic> events = json['data']['results'];
-
-      for (var event in events) {
-        if (event['productionId'] == productionId) {
-          print(
-              '👉 Event για productionId $productionId: isClaimed: ${event['isClaimed']}');
-          return event['id']; // επέστρεψε το πρώτο eventId
-        }
-      }
-    }
-    return null;
-  }
-
   static Future<bool> updateProduction({
     required int productionId,
     required String title,
@@ -360,10 +336,11 @@ class MoviesService {
       "Accept": "application/json",
       "Content-Type": "application/json",
       "Authorization":
-          "${await AuthorizationStore.getStoreValue("authorization")}"
+          "Bearer ${await AuthorizationStore.getStoreValue("authorization")}"
     };
 
     final body = jsonEncode({
+      "id": productionId,
       "title": title,
       "description": description,
       "url": ticketUrl,
@@ -372,8 +349,8 @@ class MoviesService {
       "duration": duration,
     });
 
-    final uri = Uri.parse(
-        "http://${Constants().hostName}/api/productions/$productionId");
+    final uri =
+        Uri.parse("http://${Constants().hostName}/api/Productions/update");
 
     final response = await http.put(uri, headers: headers, body: body);
 
@@ -381,5 +358,112 @@ class MoviesService {
     print("📩 Response: ${response.statusCode} ${response.body}");
 
     return response.statusCode == 200;
+  }
+
+  static Future<bool> updateEvent({
+    required int eventId,
+    String? priceRange,
+    String? eventDate,
+    int? productionId,
+    int? venueId,
+  }) async {
+    final headers = {
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+      "Authorization":
+          "Bearer ${await AuthorizationStore.getStoreValue("authorization")}"
+    };
+
+    final body = jsonEncode({
+      "eventId": eventId,
+      "priceRange": priceRange,
+      "eventDate": eventDate,
+      "productionId": productionId,
+      "venueId": venueId,
+      "systemId": 1 // Προσαρμόστε αναλόγως αν έχετε πολλαπλά συστήματα
+    });
+
+    final uri = Uri.parse("http://${Constants().hostName}/api/events/update");
+
+    final response = await http.put(uri, headers: headers, body: body);
+
+    print("📤 Update Event Request: $body");
+    print("📩 Response: ${response.statusCode} ${response.body}");
+
+    return response.statusCode == 200;
+  }
+
+  static Future<List<EventDto>> getEventsForProduction(int productionId) async {
+    final headers = {
+      "Accept": "application/json",
+      "Authorization":
+          "Bearer ${await AuthorizationStore.getStoreValue("authorization")}"
+    };
+
+    final uri = Uri.parse(
+        "http://${Constants().hostName}/api/events/production/$productionId");
+
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      final data = decoded['data'];
+      final results = data != null ? data['results'] as List<dynamic>? : null;
+
+      if (results == null || results.isEmpty) {
+        return [];
+      }
+
+      return results.map((e) => EventDto.fromJson(e)).toList();
+    } else {
+      return [];
+    }
+  }
+
+  static Future<List<int>> getPeopleIdsForProduction(int productionId) async {
+    final headers = {
+      "Accept": "application/json",
+      "Authorization":
+          "Bearer ${await AuthorizationStore.getStoreValue("authorization")}"
+    };
+
+    final uri = Uri.parse("http://${Constants().hostName}/api/Contributions");
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final data =
+          jsonDecode(response.body)['data']['results'] as List<dynamic>;
+
+      final filteredPeopleIds = data
+          .where((e) => e['productionId'] == productionId)
+          .map<int>((e) => e['peopleId'] as int)
+          .toSet()
+          .toList();
+
+      return filteredPeopleIds;
+    } else {
+      print("❌ Failed to fetch contributions: ${response.statusCode}");
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getPersonById(int peopleId) async {
+    final headers = {
+      "Accept": "application/json",
+      "Authorization":
+          "Bearer ${await AuthorizationStore.getStoreValue("authorization")}"
+    };
+
+    final uri =
+        Uri.parse("http://${Constants().hostName}/api/People/$peopleId");
+
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body)['data'];
+    } else {
+      print("❌ Failed to fetch person $peopleId: ${response.statusCode}");
+      return null;
+    }
   }
 }

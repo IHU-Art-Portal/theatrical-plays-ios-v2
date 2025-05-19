@@ -5,12 +5,12 @@ import 'package:http/http.dart';
 import 'package:theatrical_plays/models/Theater.dart';
 import 'package:theatrical_plays/pages/theaters/TheaterMovieSection.dart';
 import 'package:theatrical_plays/pages/theaters/TheaterProfile.dart';
+import 'package:theatrical_plays/pages/theaters/EditVenuePage.dart';
 import 'package:theatrical_plays/using/AuthorizationStore.dart';
 import 'package:theatrical_plays/using/Constants.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/Loading.dart';
 import 'package:theatrical_plays/using/VenueService.dart';
-import 'package:theatrical_plays/pages/theaters/EditVenuePage.dart';
 import 'package:theatrical_plays/using/UserService.dart';
 
 class TheaterInfo extends StatefulWidget {
@@ -34,24 +34,24 @@ class _TheaterInfoState extends State<TheaterInfo> {
 
   Future<void> _loadData() async {
     final profile = await UserService.fetchUserProfile();
-    final loadedTheater = await loadTheater();
+    final loadedTheater = await _fetchTheater();
     setState(() {
       userProfile = profile;
       theater = loadedTheater;
     });
   }
 
-  Future<Theater?> loadTheater() async {
+  Future<Theater?> _fetchTheater() async {
     try {
-      Uri uri = Uri.parse(
+      final uri = Uri.parse(
           "http://${Constants().hostName}/api/venues/${widget.theaterId}");
-      Response data = await get(uri, headers: {
+      final response = await get(uri, headers: {
         "Accept": "application/json",
         "authorization":
             "${await AuthorizationStore.getStoreValue("authorization")}"
       });
 
-      var jsonData = jsonDecode(data.body);
+      final jsonData = jsonDecode(response.body);
 
       return Theater(
         id: jsonData['data']['id'] ?? 0,
@@ -88,22 +88,9 @@ class _TheaterInfoState extends State<TheaterInfo> {
         systemOverlayStyle: SystemUiOverlayStyle.light,
       ),
       backgroundColor: colors.background,
-      body: FutureBuilder<Theater?>(
-        future: loadTheater(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const TheaterSeatsLoading();
-          } else if (snapshot.hasError) {
-            return Center(
-                child: Text("Error loading data",
-                    style: TextStyle(color: colors.accent)));
-          } else if (!snapshot.hasData) {
-            return Center(
-                child: Text("No data available",
-                    style: TextStyle(color: colors.accent)));
-          } else {
-            final theater = snapshot.data!;
-            return SingleChildScrollView(
+      body: theater == null
+          ? const TheaterSeatsLoading()
+          : SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -116,66 +103,63 @@ class _TheaterInfoState extends State<TheaterInfo> {
                           borderRadius: BorderRadius.circular(16)),
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
-                        child: TheaterProfile(theater: theater),
+                        child: TheaterProfile(theater: theater!),
                       ),
                     ),
                     const SizedBox(height: 16),
 
-                    // Claim Section
-                    userOwnsVenue()
-                        ? ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        EditVenuePage(theater: theater!)),
-                              );
-                            },
-                            child: const Text('Επεξεργασία Χώρου'),
-                          )
-                        : theater!.isClaimed
-                            ? const Text(
-                                'Αυτός ο χώρος είναι ήδη κατοχυρωμένος',
-                                style: TextStyle(color: Colors.green),
-                              )
-                            : ElevatedButton(
-                                onPressed: () async {
-                                  final success = await VenueService.claimVenue(
-                                      theater!.id);
-                                  if (success) {
-                                    await _loadData(); // ΞΑΝΑΦΟΡΤΩΝΕΙ ΠΡΟΦΙΛ & THEATER
-                                  }
-                                },
-                                child: const Text('Διεκδίκηση Χώρου'),
-                              ),
+                    // Dynamic Claim/Edit Section
+                    _buildClaimOrEditSection(),
 
-                    // Section Divider with Label
+                    const SizedBox(height: 24),
                     Row(
                       children: [
                         Expanded(child: Divider(color: colors.accent)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Text(
-                            "Related Movies",
-                            style: TextStyle(
-                                color: colors.accent,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold),
-                          ),
+                          child: Text("Related Movies",
+                              style: TextStyle(
+                                  color: colors.accent,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold)),
                         ),
                         Expanded(child: Divider(color: colors.accent)),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    TheaterMovieSection(theaterId: theater.id),
+                    TheaterMovieSection(theaterId: theater!.id),
                   ],
                 ),
               ),
-            );
-          }
-        },
-      ),
+            ),
     );
+  }
+
+  Widget _buildClaimOrEditSection() {
+    if (userOwnsVenue()) {
+      return ElevatedButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => EditVenuePage(theater: theater!)),
+          );
+        },
+        child: const Text('Επεξεργασία Χώρου'),
+      );
+    } else {
+      return theater!.isClaimed
+          ? const Text('Αυτός ο χώρος είναι ήδη κατοχυρωμένος',
+              style: TextStyle(color: Colors.green))
+          : ElevatedButton(
+              onPressed: () async {
+                final success = await VenueService.claimVenue(theater!.id);
+                if (success) {
+                  await _loadData(); // Refresh to reflect ownership
+                }
+              },
+              child: const Text('Διεκδίκηση Χώρου'),
+            );
+    }
   }
 }

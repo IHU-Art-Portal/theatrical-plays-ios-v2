@@ -8,6 +8,7 @@ import 'package:theatrical_plays/using/Constants.dart';
 import 'package:theatrical_plays/pages/Home.dart';
 import 'package:theatrical_plays/using/globals.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
+import 'dart:ui';
 
 class LoginSignupScreen extends StatefulWidget {
   @override
@@ -36,17 +37,13 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
         height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: isDarkMode
-                ? [
-                    Colors.black87,
-                    Colors.black54
-                  ] // Σκοτεινό Gradient για Dark Mode
-                : [
-                    Colors.blue.shade900,
-                    Colors.red.shade700
-                  ], // Φωτεινό Gradient για Light Mode
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF0D0D0D), // Απόλυτο Μαύρο (MyColors.dark.background)
+              Color(0xFF5A0E24), // Σκούρο Μπορντώ
+              Color(0xFFB71C1C), // Netflix Κόκκινο (στυλ #B71C1C)
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
         child: Stack(
@@ -59,24 +56,31 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                   padding: const EdgeInsets.only(left: 20),
                   child: RichText(
                     text: TextSpan(
-                      text: "Welcome to",
+                      text: isSignupScreen ? "Welcome to " : "Welcome back,",
                       style: TextStyle(
                         fontSize: 25,
                         letterSpacing: 2,
                         color: colors.accent,
-                      ),
-                      children: [
-                        TextSpan(
-                          text: isSignupScreen
-                              ? " Theatrical Analytics"
-                              : " Back,",
-                          style: TextStyle(
-                            fontSize: 25,
-                            fontWeight: FontWeight.bold,
-                            color: colors.accent,
+                        shadows: [
+                          Shadow(
+                            blurRadius: 6,
+                            color: Colors.black.withOpacity(0.5),
+                            offset: Offset(1, 1),
                           ),
-                        )
-                      ],
+                        ],
+                      ),
+                      children: isSignupScreen
+                          ? [
+                              TextSpan(
+                                text: "Theatrical Analytics",
+                                style: TextStyle(
+                                  color: Colors.amberAccent,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ]
+                          : [],
                     ),
                   ),
                 ),
@@ -85,8 +89,8 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                   padding: const EdgeInsets.only(left: 20),
                   child: Text(
                     isSignupScreen
-                        ? "Signup to Continue"
-                        : "Signin to Continue",
+                        ? "Sign up to Continue"
+                        : "Sign in to Continue",
                     style: TextStyle(
                         letterSpacing: 1, color: colors.secondaryText),
                   ),
@@ -103,91 +107,92 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
                 duration: Duration(milliseconds: 700),
                 curve: Curves.bounceInOut,
                 height: isSignupScreen ? 275 : 250,
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: colors.background,
+                child: ClipRRect(
                   borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 15,
-                      spreadRadius: 5,
-                    ),
-                  ],
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                isSignupScreen = false;
-                              });
-                            },
-                            child: Column(
-                              children: [
-                                Text(
-                                  "LOGIN",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: !isSignupScreen
-                                        ? colors.accent
-                                        : colors.secondaryText,
-                                  ),
-                                ),
-                                if (!isSignupScreen)
-                                  Container(
-                                    margin: EdgeInsets.only(top: 3),
-                                    height: 2,
-                                    width: 55,
-                                    color: colors.accent,
-                                  )
-                              ],
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                isSignupScreen = true;
-                              });
-                            },
-                            child: Column(
-                              children: [
-                                Text(
-                                  "SIGNUP",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: isSignupScreen
-                                        ? colors.accent
-                                        : colors.secondaryText,
-                                  ),
-                                ),
-                                if (isSignupScreen)
-                                  Container(
-                                    margin: EdgeInsets.only(top: 3),
-                                    height: 2,
-                                    width: 55,
-                                    color: colors.accent,
-                                  )
-                              ],
-                            ),
-                          )
-                        ],
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                    child: Container(
+                      padding: EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(15),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.3)),
                       ),
-                      if (isSignupScreen) buildSignupSection(),
-                      if (!isSignupScreen) buildSigninSection()
-                    ],
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      isSignupScreen = false;
+                                    });
+                                  },
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        "LOGIN",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: !isSignupScreen
+                                              ? colors.accent
+                                              : colors.secondaryText,
+                                        ),
+                                      ),
+                                      if (!isSignupScreen)
+                                        Container(
+                                          margin: EdgeInsets.only(top: 3),
+                                          height: 2,
+                                          width: 55,
+                                          color: colors.accent,
+                                        )
+                                    ],
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      isSignupScreen = true;
+                                    });
+                                  },
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        "SIGNUP",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: isSignupScreen
+                                              ? colors.accent
+                                              : colors.secondaryText,
+                                        ),
+                                      ),
+                                      if (isSignupScreen)
+                                        Container(
+                                          margin: EdgeInsets.only(top: 3),
+                                          height: 2,
+                                          width: 55,
+                                          color: colors.accent,
+                                        )
+                                    ],
+                                  ),
+                                )
+                              ],
+                            ),
+                            if (isSignupScreen) buildSignupSection(),
+                            if (!isSignupScreen) buildSigninSection()
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-
-            // ✅ Επαναφορά του κουμπιού με το βέλος
             buildBottomHalfContainer(false),
           ],
         ),
@@ -208,9 +213,9 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
             controller: emailController,
             decoration: InputDecoration(
               prefixIcon: Icon(MaterialCommunityIcons.email_outline,
-                  color: colors.iconColor),
+                  color: colors.background),
               enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: colors.secondaryText),
+                borderSide: BorderSide(color: colors.accent),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               focusedBorder: OutlineInputBorder(
@@ -219,7 +224,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
               ),
               contentPadding: EdgeInsets.all(10),
               hintText: "Email",
-              hintStyle: TextStyle(fontSize: 14, color: colors.secondaryText),
+              hintStyle: TextStyle(fontSize: 14, color: colors.background),
             ),
             style: TextStyle(color: colors.primaryText),
           ),
@@ -229,9 +234,9 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
             obscureText: true,
             decoration: InputDecoration(
               prefixIcon: Icon(MaterialCommunityIcons.lock_outline,
-                  color: colors.iconColor),
+                  color: colors.background),
               enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: colors.secondaryText),
+                borderSide: BorderSide(color: colors.accent),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               focusedBorder: OutlineInputBorder(
@@ -240,7 +245,7 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
               ),
               contentPadding: EdgeInsets.all(10),
               hintText: "Password",
-              hintStyle: TextStyle(fontSize: 14, color: colors.secondaryText),
+              hintStyle: TextStyle(fontSize: 14, color: colors.background),
             ),
             style: TextStyle(color: colors.primaryText),
           ),
@@ -288,18 +293,18 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
             controller: emailController,
             decoration: InputDecoration(
               prefixIcon: Icon(MaterialCommunityIcons.email_outline,
-                  color: colors.iconColor),
+                  color: colors.background),
               enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: colors.secondaryText),
+                borderSide: BorderSide(color: colors.accent),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: colors.secondaryText),
+                borderSide: BorderSide(color: colors.accent),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               contentPadding: EdgeInsets.all(10),
               hintText: "Email",
-              hintStyle: TextStyle(fontSize: 14, color: colors.secondaryText),
+              hintStyle: TextStyle(fontSize: 14, color: colors.background),
             ),
           ),
           SizedBox(height: 10),
@@ -308,18 +313,18 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
             obscureText: true,
             decoration: InputDecoration(
               prefixIcon: Icon(MaterialCommunityIcons.lock_outline,
-                  color: colors.iconColor),
+                  color: colors.background),
               enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: colors.secondaryText),
+                borderSide: BorderSide(color: colors.accent),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: colors.secondaryText),
+                borderSide: BorderSide(color: colors.primaryText),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               contentPadding: EdgeInsets.all(10),
               hintText: "Password",
-              hintStyle: TextStyle(fontSize: 14, color: colors.secondaryText),
+              hintStyle: TextStyle(fontSize: 14, color: colors.background),
             ),
           ),
           SizedBox(height: 10),
@@ -328,18 +333,18 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
             dropdownColor: colors.background,
             decoration: InputDecoration(
               prefixIcon: Icon(MaterialCommunityIcons.account_outline,
-                  color: colors.iconColor),
+                  color: colors.background),
               enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: colors.secondaryText),
+                borderSide: BorderSide(color: colors.accent),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: colors.secondaryText),
+                borderSide: BorderSide(color: colors.accent),
                 borderRadius: BorderRadius.all(Radius.circular(35.0)),
               ),
               contentPadding: EdgeInsets.all(10),
               labelText: 'Select Role',
-              labelStyle: TextStyle(fontSize: 14, color: colors.secondaryText),
+              labelStyle: TextStyle(fontSize: 14, color: colors.background),
             ),
             style: TextStyle(color: colors.secondaryText),
             items: [

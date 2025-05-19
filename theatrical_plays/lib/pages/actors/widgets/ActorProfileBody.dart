@@ -11,23 +11,43 @@ class ActorProfileBody extends StatelessWidget {
   final Actor actor;
   final List<Production> productions;
   final List<Movie> movies;
+  final VoidCallback onClaimPressed; //  Προσθήκη callback για το κουμπί
+  final bool isClaimed;
 
   const ActorProfileBody({
     Key? key,
     required this.actor,
     required this.productions,
     required this.movies,
+    required this.onClaimPressed,
+    required this.isClaimed, // Για έλεγχο κατάστασης
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return ListView(
-      physics: BouncingScrollPhysics(),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.all(16),
       children: [
         ActorHeaderWidget(
           fullName: actor.fullName,
           imageUrl: actor.image,
           birthdate: actor.birthdate,
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ElevatedButton.icon(
+            onPressed: isClaimed ? null : onClaimPressed,
+            icon: Icon(isClaimed ? Icons.verified : Icons.verified_outlined),
+            label: Text(isClaimed ? 'Ήδη Διεκδικημένο' : 'Αίτημα Διεκδίκησης'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isClaimed ? Colors.grey : Colors.redAccent,
+              foregroundColor: Colors.white,
+              minimumSize: Size(double.infinity, 48),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
         ),
         KnownForCarousel(
           productions: productions,
@@ -43,7 +63,7 @@ class ActorProfileBody extends StatelessWidget {
           eyeColor: actor.eyeColor,
           hairColor: actor.hairColor,
         ),
-        SizedBox(height: 30),
+        const SizedBox(height: 20),
       ],
     );
   }

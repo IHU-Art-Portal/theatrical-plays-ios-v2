@@ -25,12 +25,13 @@ class _MovieInfoState extends State<MovieInfo> {
   String? selectedVenue;
   Map<String, dynamic>? userProfile;
   bool isProductionClaimedLive = false;
+  List<int> peopleIds = [];
 
   @override
   void initState() {
     super.initState();
     _loadUser();
-    _loadMovie();
+    _loadMovie().then((_) => _loadPeopleForProduction());
     _checkProductionClaim();
   }
 
@@ -77,6 +78,14 @@ class _MovieInfoState extends State<MovieInfo> {
     });
   }
 
+  Future<void> _loadPeopleForProduction() async {
+    if (movie == null) return;
+    final ids = await MoviesService.getPeopleIdsForProduction(movie!.id);
+    setState(() {
+      peopleIds = ids;
+    });
+  }
+
   Future<void> claimProduction() async {
     if (movie?.datesPerVenue?.isEmpty ?? true) {
       showAwesomeNotification("Δεν υπάρχουν διαθέσιμα events.",
@@ -87,15 +96,16 @@ class _MovieInfoState extends State<MovieInfo> {
     final productionId = movie!.id;
     print("🚀 Ξεκινάω claim για productionId: $productionId");
 
-    final eventId =
-        await MoviesService.getFirstEventIdForProduction(productionId);
+    final events = await MoviesService.getEventsForProduction(productionId);
 
-    if (eventId == null) {
+    if (events.isEmpty) {
       print("❌ Δεν βρέθηκε event για productionId: $productionId");
       showAwesomeNotification("Δεν βρέθηκε διαθέσιμο event",
           title: "⚠️ Σφάλμα");
       return;
     }
+
+    final eventId = events.first.id;
 
     print("👉 Βρέθηκε eventId: $eventId - Προχωράω σε claim...");
 
@@ -104,9 +114,9 @@ class _MovieInfoState extends State<MovieInfo> {
     print("📩 Αποτέλεσμα claim: ${success ? "Επιτυχία" : "Αποτυχία"}");
 
     if (success) {
-      await _loadUser(); // Φορτώνουμε ξανά το userProfile με το νέο claimed event
-      await _loadMovie(); // Φορτώνουμε ξανά το production με το isClaimed ενημερωμένο
-      await _checkProductionClaim(); // Κάνουμε live check για σιγουριά
+      await _loadUser();
+      await _loadMovie();
+      await _checkProductionClaim();
       showAwesomeNotification("Το αίτημα εγκρίθηκε αυτόματα",
           title: "✅ Επιτυχία");
     } else {

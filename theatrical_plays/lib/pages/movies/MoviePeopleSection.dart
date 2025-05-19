@@ -1,11 +1,5 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
-import 'package:theatrical_plays/models/RelatedActor.dart';
-import 'package:theatrical_plays/pages/actors/ActorProfilePgae.dart';
-import 'package:theatrical_plays/using/AuthorizationStore.dart';
-import 'package:theatrical_plays/using/Constants.dart';
+import 'package:theatrical_plays/using/MoviesService.dart';
 import 'package:theatrical_plays/using/MyColors.dart';
 
 class MoviePeopleSection extends StatefulWidget {
@@ -18,50 +12,33 @@ class MoviePeopleSection extends StatefulWidget {
 }
 
 class _MoviePeopleSectionState extends State<MoviePeopleSection> {
-  late final int movieId;
+  List<int> peopleIds = [];
+  bool isLoading = true;
+  List<Map<String, dynamic>> peopleDetails = [];
 
   @override
   void initState() {
     super.initState();
-    movieId = widget.movieId;
-    print("📥 Fetching actors for movieId: ${widget.movieId}");
+    loadPeopleForProduction();
   }
 
-  List<RelatedActor> relatedActors = [];
+  Future<void> loadPeopleForProduction() async {
+    final ids = await MoviesService.getPeopleIdsForProduction(widget.movieId);
+    List<Map<String, dynamic>> details = [];
 
-  Future<List<RelatedActor>> loadRelatedActors() async {
-    try {
-      Uri uri = Uri.parse(
-          "http://${Constants().hostName}/api/productions/$movieId/people");
+    for (final id in ids) {
+      final person = await MoviesService.getPersonById(id);
+      print("🔍 Person fetched: $person");
 
-      Response data = await get(uri, headers: {
-        "Accept": "application/json",
-        "authorization":
-            "${await AuthorizationStore.getStoreValue("authorization")}"
-      });
-
-      if (data.statusCode == 200) {
-        print("👀 Actors response: ${data.body}");
-
-        var jsonData = jsonDecode(data.body);
-        if (jsonData['data'] is List) {
-          return (jsonData['data'] as List)
-              .map<RelatedActor>((actor) => RelatedActor.fromJson(actor))
-              .toList();
-        } else {
-          print("❌ data['data'] is not a list: ${jsonData['data']}");
-          return [];
-        }
-      } else {
-        print("❌ Response code: ${data.statusCode}");
-        print("❌ Response body: ${data.body}");
-        throw Exception("Failed to load data");
+      if (person != null) {
+        details.add(person);
       }
-    } catch (e) {
-      print('Error fetching related actors: $e');
-
-      return [];
     }
+
+    setState(() {
+      peopleDetails = details;
+      isLoading = false;
+    });
   }
 
   @override
@@ -70,55 +47,73 @@ class _MoviePeopleSectionState extends State<MoviePeopleSection> {
     final isDarkMode = theme.brightness == Brightness.dark;
     final colors = isDarkMode ? MyColors.dark : MyColors.light;
 
-    return FutureBuilder<List<RelatedActor>>(
-      future: loadRelatedActors(),
-      builder:
-          (BuildContext context, AsyncSnapshot<List<RelatedActor>> snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              "Πρόβλημα φόρτωσης ηθοποιών",
-              style: TextStyle(color: colors.accent, fontSize: 22),
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (peopleDetails.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Text(
+          'Δεν υπάρχουν διαθέσιμοι ηθοποιοί.',
+          style: TextStyle(
+              color: colors.secondaryText, fontStyle: FontStyle.italic),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.75,
+      ),
+      itemCount: peopleDetails.length,
+      itemBuilder: (context, index) {
+        final person = peopleDetails[index];
+        final fullName = person['fullname'] ?? 'Άγνωστο Όνομα';
+        final personId = person['id'];
+        final roles = (person['roles'] as List<dynamic>?)?.join(', ') ?? '';
+
+        return GestureDetector(
+          onTap: () {
+            // Μπορείς εδώ να περάσεις το person σε ProfilePage σου αν έχεις
+            print("Clicked on $fullName");
+          },
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey[900],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white24),
             ),
-          );
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(
-            child: Text(
-              'Δεν υπάρχουν διαθέσιμοι ηθοποιοί',
-              style: TextStyle(color: Colors.white70, fontSize: 18),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.person, size: 48, color: Colors.white70),
+                const SizedBox(height: 8),
+                Text(
+                  fullName,
+                  style: const TextStyle(color: Colors.white),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  roles,
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-          );
-        } else {
-          return ListView.builder(
-            physics: NeverScrollableScrollPhysics(),
-            shrinkWrap: true,
-            itemCount: snapshot.data!.length,
-            itemBuilder: (context, index) {
-              var actor = snapshot.data![index];
-              return ListTile(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          ActorProfilePage(actor: actor.toActor()),
-                    ),
-                  );
-                },
-                leading: CircleAvatar(
-                  radius: 28,
-                  backgroundImage: NetworkImage(actor.image),
-                ),
-                title: Text(
-                  "${actor.fullName} - ${actor.role}",
-                  style: TextStyle(color: colors.accent),
-                ),
-              );
-            },
-          );
-        }
+          ),
+        );
       },
     );
   }

@@ -13,6 +13,7 @@ import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:theatrical_plays/using/globals.dart';
 import 'package:theatrical_plays/using/UserService.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ActorProfilePage extends StatefulWidget {
   final Actor actor;
@@ -28,20 +29,30 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
   List<Movie> movies = [];
   bool isLoading = true;
   bool isClaimed = false;
+  bool hasPendingClaim = false;
 
   @override
   void initState() {
     super.initState();
     loadProductions();
+    checkPendingClaim();
+  }
+
+  Future<void> checkPendingClaim() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool pending = prefs.getBool('pending_claim_${widget.actor.id}') ?? false;
+    setState(() => hasPendingClaim = pending);
+  }
+
+  Future<void> savePendingClaim(int actorId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('pending_claim_$actorId', true);
   }
 
   Future<void> loadProductions() async {
     try {
-      final token =
-          await AuthorizationStore.getStoreValue("authorization") ?? '';
       final url = Uri.parse(
           "http://${Constants().hostName}/api/people/${widget.actor.id}/productions");
-
       final response = await http.get(url, headers: {
         "Authorization": "Bearer $globalAccessToken",
         "Accept": "application/json",
@@ -78,17 +89,19 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
           await rootBundle.load('assets/test_files/test_cv_tp.pdf');
       final base64File = base64Encode(fileBytes.buffer.asUint8List());
 
-      final success = await UserService.claimActor(
+      await UserService.claimActor(
         actorId: widget.actor.id,
         base64Document: base64File,
       );
 
-      if (success) {
-        showAwesomeNotification("Το αίτημα διεκδίκησης στάλθηκε",
-            title: "✅ Επιτυχία");
-      } else {
-        showAwesomeNotification("Αποτυχία διεκδίκησης", title: "❌ Αποτυχία");
-      }
+      await savePendingClaim(widget.actor.id);
+
+      setState(() => hasPendingClaim = true);
+
+      showAwesomeNotification(
+        "Το αίτημα διεκδίκησης στάλθηκε και θα εξεταστεί από τον διαχειριστή.",
+        title: "✅ Υποβλήθηκε",
+      );
     } catch (e) {
       showAwesomeNotification("Σφάλμα κατά την αποστολή", title: "❌ Αποτυχία");
     }
@@ -97,13 +110,11 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
   void openGallery(List<String> images) {
     showDialog(
       context: context,
-      builder: (_) {
-        return Dialog(
-          backgroundColor: Colors.black,
-          insetPadding: EdgeInsets.zero,
-          child: _GalleryView(images: images),
-        );
-      },
+      builder: (_) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: EdgeInsets.zero,
+        child: _GalleryView(images: images),
+      ),
     );
   }
 
@@ -123,36 +134,41 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
       ),
       body: isLoading
           ? Center(child: TheaterSeatsLoading())
-          : Stack(
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                GestureDetector(
-                  onTap: () {
-                    if (widget.actor.images.isNotEmpty) {
-                      openGallery(widget.actor.images);
-                    }
-                  },
-                  child: ActorProfileBody(
-                    actor: widget.actor,
-                    productions: productions,
-                    movies: movies,
-                  ),
-                ),
-                Positioned(
-                  top: 15,
-                  right: 15,
+                Expanded(
                   child: GestureDetector(
-                    onTap: isClaimed ? null : claimActor,
-                    child: Tooltip(
-                      message: isClaimed
-                          ? "Ο λογαριασμός είναι ήδη διεκδικημένος"
-                          : "Κάνε αίτημα διεκδίκησης",
-                      child: Icon(
-                        isClaimed ? Icons.verified : Icons.verified_outlined,
-                        color: isClaimed ? Colors.green : clr.accent,
-                        size: 30,
-                      ),
+                    onTap: () {
+                      if (widget.actor.images.isNotEmpty) {
+                        openGallery(widget.actor.images);
+                      }
+                    },
+                    child: ActorProfileBody(
+                      actor: widget.actor,
+                      productions: productions,
+                      movies: movies,
+                      onClaimPressed: claimActor,
+                      isClaimed: isClaimed || hasPendingClaim,
                     ),
                   ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: (isClaimed || hasPendingClaim)
+                      ? ElevatedButton(
+                          onPressed: null,
+                          child: const Text('ΑΙΤΗΜΑ ΥΠΟΒΛΗΘΗΚΕ'),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey),
+                        )
+                      : ElevatedButton.icon(
+                          onPressed: claimActor,
+                          icon: const Icon(Icons.verified_user),
+                          label: const Text('Αίτημα Διεκδίκησης'),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.redAccent),
+                        ),
                 ),
               ],
             ),

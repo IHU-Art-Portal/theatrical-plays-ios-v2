@@ -19,9 +19,12 @@ class _EditMoviePageState extends State<EditMoviePage> {
   late TextEditingController descCtrl;
   late TextEditingController urlCtrl;
 
+  int? movieEventId;
+
   @override
   void initState() {
     super.initState();
+    loadEventId();
     // γεμίζουμε τα πεδία με τα υπάρχοντα δεδομένα
     titleCtrl = TextEditingController(text: widget.movie.title);
     descCtrl = TextEditingController(text: widget.movie.description);
@@ -34,6 +37,15 @@ class _EditMoviePageState extends State<EditMoviePage> {
     descCtrl.dispose();
     urlCtrl.dispose();
     super.dispose();
+  }
+
+  void loadEventId() async {
+    final events = await MoviesService.getEventsForProduction(widget.movie.id);
+    if (events.isNotEmpty) {
+      setState(() {
+        movieEventId = events.first.id; // ή ζήτησε από τον χρήστη να επιλέξει
+      });
+    }
   }
 
   // helper για ειδοποίηση
@@ -50,7 +62,7 @@ class _EditMoviePageState extends State<EditMoviePage> {
 
   // τι κάνουμε όταν πατήσει αποθήκευση
   void save() async {
-    final success = await MoviesService.updateProduction(
+    final productionUpdated = await MoviesService.updateProduction(
       productionId: widget.movie.id,
       title: titleCtrl.text,
       description: descCtrl.text,
@@ -60,7 +72,20 @@ class _EditMoviePageState extends State<EditMoviePage> {
       duration: widget.movie.duration,
     );
 
-    if (success) {
+    final eventId = movieEventId;
+    if (eventId == null) {
+      notify('Δεν βρέθηκε event για την παραγωγή');
+      return;
+    }
+    final eventUpdated = await MoviesService.updateEvent(
+      eventId: eventId,
+      priceRange: widget.movie.priceRange,
+      eventDate: null,
+      productionId: widget.movie.id,
+      venueId: widget.movie.organizerId,
+    );
+
+    if (productionUpdated && eventUpdated) {
       notify('Οι αλλαγές αποθηκεύτηκαν με επιτυχία ✅');
       Navigator.pop(context);
     } else {
