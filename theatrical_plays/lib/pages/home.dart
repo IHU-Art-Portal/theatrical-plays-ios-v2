@@ -223,13 +223,13 @@ class _HomeState extends State<Home> {
         },
         items: [
           BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined), label: 'Home'),
+              icon: Icon(Icons.home_outlined), label: 'Αρχική'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline), label: 'Actors'),
+              icon: Icon(Icons.person_outline), label: 'Ηθοποιοί'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.movie_outlined), label: 'Movies'),
+              icon: Icon(Icons.movie_outlined), label: 'Παραστάσεις'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.theaters_outlined), label: 'Theaters'),
+              icon: Icon(Icons.theaters_outlined), label: 'Θέατρα'),
           if (userRole?.toLowerCase() == 'claimsmanager')
             BottomNavigationBarItem(
                 icon: Icon(Icons.assignment_turned_in_outlined),
