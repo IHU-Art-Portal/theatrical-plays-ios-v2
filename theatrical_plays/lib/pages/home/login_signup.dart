@@ -349,20 +349,12 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
             style: TextStyle(color: colors.secondaryText),
             items: [
               DropdownMenuItem<int>(
-                  value: 1,
-                  child: Text("Admin",
-                      style: TextStyle(color: colors.secondaryText))),
-              DropdownMenuItem<int>(
                   value: 2,
                   child: Text("User",
                       style: TextStyle(color: colors.secondaryText))),
               DropdownMenuItem<int>(
-                  value: 3,
-                  child: Text("Developer",
-                      style: TextStyle(color: colors.secondaryText))),
-              DropdownMenuItem<int>(
                   value: 4,
-                  child: Text("Claims Manager",
+                  child: Text("SuperAdmin",
                       style: TextStyle(color: colors.secondaryText))),
             ],
             onChanged: (int? newValue) {

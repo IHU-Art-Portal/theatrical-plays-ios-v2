@@ -153,23 +153,6 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: (isClaimed || hasPendingClaim)
-                      ? ElevatedButton(
-                          onPressed: null,
-                          child: const Text('ΑΙΤΗΜΑ ΥΠΟΒΛΗΘΗΚΕ'),
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.grey),
-                        )
-                      : ElevatedButton.icon(
-                          onPressed: claimActor,
-                          icon: const Icon(Icons.verified_user),
-                          label: const Text('Αίτημα Διεκδίκησης'),
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.redAccent),
-                        ),
-                ),
               ],
             ),
     );
