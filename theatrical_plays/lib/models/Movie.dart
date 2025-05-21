@@ -34,10 +34,17 @@ class Movie {
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
+    final fallbackUrl = json['url'];
+    final validTicketUrl = (fallbackUrl != null &&
+            (fallbackUrl.contains('viva.gr') ||
+                fallbackUrl.contains('ticketservices.gr')))
+        ? fallbackUrl
+        : null;
+
     return Movie(
       id: json['id'] ?? 0,
       title: json['title'] ?? 'Unknown Title',
-      ticketUrl: json['ticketUrl'] ?? json['url'],
+      ticketUrl: json['ticketUrl'] ?? validTicketUrl,
       producer: json['producer'] ?? 'Unknown Producer',
       mediaUrl: json['mediaUrl'] ??
           json['mediaURL'] ??

@@ -149,7 +149,11 @@ class MoviesService {
         final Movie movie = Movie(
           id: id,
           title: item['title'] ?? 'Χωρίς τίτλο',
-          ticketUrl: item['ticketUrl'],
+          ticketUrl: item['ticketUrl'] ??
+              (item['url']?.contains('viva.gr') == true ||
+                      item['url']?.contains('ticketservices.gr') == true
+                  ? item['url']
+                  : null),
           producer: item['producer'] ?? 'Άγνωστος παραγωγός',
           mediaUrl: mediaUrl,
           duration: item['duration'],
@@ -464,6 +468,96 @@ class MoviesService {
     } else {
       print("❌ Failed to fetch person $peopleId: ${response.statusCode}");
       return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> fetchOrganizerById(
+      int organizerId) async {
+    try {
+      final uri = Uri.parse(
+          "http://${Constants().hostName}/api/Organizers?page=1&size=9999");
+      final headers = {
+        "Accept": "application/json",
+        "Authorization":
+            "Bearer ${await AuthorizationStore.getStoreValue("authorization")}"
+      };
+      final response = await http.get(uri, headers: headers);
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final organizers = json['data']['results'];
+        final found = organizers.firstWhere((org) => org['id'] == organizerId,
+            orElse: () => null);
+        return found;
+      }
+    } catch (e) {
+      print("❌ Σφάλμα στην ανάκτηση διοργανωτή: $e");
+    }
+    return null;
+  }
+
+  static Future<List<Map<String, dynamic>>> getRawContributions() async {
+    final headers = {
+      "Accept": "application/json",
+      "Authorization":
+          "Bearer ${await AuthorizationStore.getStoreValue("authorization")}"
+    };
+
+    final uri = Uri.parse("http://${Constants().hostName}/api/Contributions");
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(
+          jsonDecode(response.body)['data']['results']);
+    } else {
+      print("❌ Failed to fetch raw contributions");
+      return [];
+    }
+  }
+
+  static Future<Map<int, String>> fetchRolesDictionary() async {
+    final headers = {
+      "Accept": "application/json",
+      "Authorization":
+          "Bearer ${await AuthorizationStore.getStoreValue("authorization")}"
+    };
+
+    final uri =
+        Uri.parse("http://${Constants().hostName}/api/Roles?page=1&size=9999");
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final results =
+          jsonDecode(response.body)['data']['results'] as List<dynamic>;
+      return {
+        for (var role in results) role['id']: role['role1'] ?? 'Άγνωστος ρόλος'
+      };
+    } else {
+      print("❌ Failed to fetch roles: ${response.statusCode}");
+      return {};
+    }
+  }
+
+  static Future<Map<int, String>> getAllRoles() async {
+    final headers = {
+      "Accept": "application/json",
+      "Authorization":
+          "Bearer ${await AuthorizationStore.getStoreValue("authorization")}"
+    };
+
+    final uri = Uri.parse("http://${Constants().hostName}/api/Roles");
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final data =
+          jsonDecode(response.body)['data']['results'] as List<dynamic>;
+      return {
+        for (var item in data)
+          if (item['id'] != null && item['role'] != null)
+            item['id']: item['role']
+      };
+    } else {
+      print("❌ Αποτυχία στη φόρτωση ρόλων: ${response.statusCode}");
+      return {};
     }
   }
 }

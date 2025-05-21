@@ -12,6 +12,7 @@ import 'package:theatrical_plays/using/MyColors.dart';
 import 'package:theatrical_plays/using/Loading.dart';
 import 'package:theatrical_plays/using/VenueService.dart';
 import 'package:theatrical_plays/using/UserService.dart';
+import 'package:awesome_notifications/awesome_notifications.dart';
 
 class TheaterInfo extends StatefulWidget {
   final int theaterId;
@@ -153,6 +154,17 @@ class _TheaterInfoState extends State<TheaterInfo> {
               style: TextStyle(color: Colors.green))
           : ElevatedButton(
               onPressed: () async {
+                final profile = await UserService.fetchUserProfile();
+                if (profile == null ||
+                    profile['phoneVerified'] != true ||
+                    profile['email'] == null ||
+                    profile['email'].isEmpty) {
+                  showAwesomeNotification(
+                      "Πρέπει να έχεις επιβεβαιωμένο email και κινητό.",
+                      title: "⚠️ Απαραίτητη επιβεβαίωση");
+                  return;
+                }
+
                 final success = await VenueService.claimVenue(theater!.id);
                 if (success) {
                   await _loadData(); // Refresh to reflect ownership
@@ -161,5 +173,19 @@ class _TheaterInfoState extends State<TheaterInfo> {
               child: const Text('Διεκδίκηση Χώρου'),
             );
     }
+  }
+
+  void showAwesomeNotification(String body,
+      {String title = '🔔 Ειδοποίηση',
+      NotificationLayout layout = NotificationLayout.Default}) {
+    AwesomeNotifications().createNotification(
+      content: NotificationContent(
+        id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        channelKey: 'basic_channel',
+        title: title,
+        body: body,
+        notificationLayout: layout,
+      ),
+    );
   }
 }

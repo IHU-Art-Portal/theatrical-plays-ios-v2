@@ -11,6 +11,7 @@ import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:theatrical_plays/pages/movies/EditMoviePage.dart';
 import 'package:theatrical_plays/using/Loading.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MovieInfo extends StatefulWidget {
   final int movieId;
@@ -26,12 +27,16 @@ class _MovieInfoState extends State<MovieInfo> {
   Map<String, dynamic>? userProfile;
   bool isProductionClaimedLive = false;
   List<int> peopleIds = [];
+  Map<String, dynamic>? organizer;
 
   @override
   void initState() {
     super.initState();
     _loadUser();
-    _loadMovie().then((_) => _loadPeopleForProduction());
+    _loadMovie().then((_) async {
+      await _loadPeopleForProduction();
+      await _loadOrganizer();
+    });
     _checkProductionClaim();
   }
 
@@ -78,6 +83,13 @@ class _MovieInfoState extends State<MovieInfo> {
     });
   }
 
+  Future<void> _loadOrganizer() async {
+    if (movie?.organizerId != null) {
+      final data = await MoviesService.fetchOrganizerById(movie!.organizerId!);
+      setState(() => organizer = data);
+    }
+  }
+
   Future<void> _loadPeopleForProduction() async {
     if (movie == null) return;
     final ids = await MoviesService.getPeopleIdsForProduction(movie!.id);
@@ -108,7 +120,15 @@ class _MovieInfoState extends State<MovieInfo> {
     final eventId = events.first.id;
 
     print("👉 Βρέθηκε eventId: $eventId - Προχωράω σε claim...");
-
+    final profile = await UserService.fetchUserProfile();
+    if (profile == null ||
+        profile['phoneVerified'] != true ||
+        profile['email'] == null ||
+        profile['email'].isEmpty) {
+      showAwesomeNotification("Πρέπει να έχεις επιβεβαιωμένο email και κινητό.",
+          title: "⚠️ Απαραίτητη επιβεβαίωση");
+      return;
+    }
     final success = await UserService.claimEvent(eventId);
 
     print("📩 Αποτέλεσμα claim: ${success ? "Επιτυχία" : "Αποτυχία"}");
@@ -135,6 +155,8 @@ class _MovieInfoState extends State<MovieInfo> {
   @override
   Widget build(BuildContext context) {
     if (movie == null) {
+      print("🎟️ ticketUrl: ${movie?.ticketUrl}");
+
       return const TheaterSeatsLoading();
     }
 
@@ -186,38 +208,22 @@ class _MovieInfoState extends State<MovieInfo> {
                       ),
                     ),
                   const SizedBox(height: 12),
-
-                  /// Εμφάνιση κουμπιών διεκδίκησης ή επεξεργασίας
-                  if (userOwnsProduction())
+                  // 🎟️ Κουμπί Αγοράς Εισιτηρίου (πάνω)
+                  if (movie!.ticketUrl != null &&
+                      movie!.ticketUrl!.trim().isNotEmpty)
                     ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => EditMoviePage(movie: movie!)),
-                        );
-                      },
-                      icon: const Icon(Icons.edit, color: Colors.white),
-                      label: const Text('Επεξεργασία Παράστασης'),
+                      onPressed: () => launchUrl(Uri.parse(movie!.ticketUrl!)),
+                      icon: const Icon(Icons.shopping_cart_outlined),
+                      label: const Text('Αγορά Εισιτηρίου'),
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green),
-                    )
-                  else if (isProductionClaimedLive)
-                    ElevatedButton(
-                      onPressed: null,
-                      child: const Text('ΗΔΗ ΔΙΕΚΔΙΚΗΜΕΝΟ',
-                          style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey),
-                    )
-                  else
-                    ElevatedButton(
-                      onPressed: claimProduction,
-                      child: const Text('ΑΙΤΗΜΑ ΔΙΕΚΔΙΚΗΣΗΣ',
-                          style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.redAccent),
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        minimumSize: const Size(double.infinity, 48),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
                     ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -245,28 +251,62 @@ class _MovieInfoState extends State<MovieInfo> {
                       movie!.datesPerVenue!.isNotEmpty)
                     buildVenueSection(),
                   const SizedBox(height: 24),
-                  if (movie!.ticketUrl != null &&
-                      movie!.ticketUrl!.trim().isNotEmpty)
-                    ElevatedButton(
-                      onPressed: () => launchUrl(Uri.parse(movie!.ticketUrl!)),
-                      child: const Text('ΑΓΟΡΑ ΕΙΣΙΤΗΡΙΟΥ'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        minimumSize: const Size(double.infinity, 48),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: MoviePeopleSection(movieId: movie!.id),
             ),
+            const SizedBox(height: 20),
+            if (organizer != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, left: 16, right: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      "🎭 Διοργανωτής: ${organizer!['name'] ?? 'Άγνωστος'}",
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 16),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 6), // Απόσταση από πάνω
+                    if (organizer!['email'] != null) ...[
+                      Text(
+                        "✉️ Email: ${organizer!['email']}",
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 14),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 4), // ✅ Κενό πριν το τηλέφωνο
+                    ],
+                    if (organizer!['phone'] != null)
+                      GestureDetector(
+                        onTap: () async {
+                          final phone = organizer!['phone']
+                              .toString()
+                              .replaceAll(' ', '');
+                          final uri = Uri.parse('tel:$phone');
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri);
+                          } else {
+                            print("❌ Δεν μπόρεσα να ανοίξω το τηλέφωνο");
+                          }
+                        },
+                        child: Text(
+                          "📞 Τηλέφωνο: ${organizer!['phone']}",
+                          style: const TextStyle(
+                            color: Colors.lightBlueAccent,
+                            fontSize: 14,
+                            decoration: TextDecoration.underline,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 30),
           ],
         ),
@@ -314,13 +354,48 @@ class _MovieInfoState extends State<MovieInfo> {
         ),
         const SizedBox(height: 16),
         if (selectedVenue != null)
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: movie!.datesPerVenue![selectedVenue]!
-                .map((d) => _dateChip(d))
-                .toList(),
+          Center(
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: movie!.datesPerVenue![selectedVenue]!
+                  .map((d) => _dateChip(d))
+                  .toList(),
+            ),
           ),
+        const SizedBox(height: 30),
+        Center(
+          child: userOwnsProduction()
+              ? ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => EditMoviePage(movie: movie!)),
+                    );
+                  },
+                  icon: const Icon(Icons.edit, color: Colors.white),
+                  label: const Text('Επεξεργασία Παράστασης'),
+                  style:
+                      ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                )
+              : isProductionClaimedLive
+                  ? ElevatedButton(
+                      onPressed: null,
+                      child: const Text('ΗΔΗ ΔΙΕΚΔΙΚΗΜΕΝΟ',
+                          style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey),
+                    )
+                  : ElevatedButton(
+                      onPressed: claimProduction,
+                      child: const Text('ΑΙΤΗΜΑ ΔΙΕΚΔΙΚΗΣΗΣ',
+                          style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent),
+                    ),
+        ),
       ],
     );
   }
