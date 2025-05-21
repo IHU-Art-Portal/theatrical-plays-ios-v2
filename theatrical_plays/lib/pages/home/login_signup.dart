@@ -508,6 +508,9 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
               "content-type": "application/json"
             },
             body: json);
+        print("🟡 Response code: ${response.statusCode}");
+        print("📩 Response body: ${response.body}");
+        print("📤 JSON Sent: $json");
         if (response.statusCode == 200) {
           AwesomeNotifications().createNotification(
             content: NotificationContent(

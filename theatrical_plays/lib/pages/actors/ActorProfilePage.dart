@@ -84,6 +84,14 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
   }
 
   Future<void> claimActor() async {
+    final allowed = await UserService.canSubmitClaim();
+
+    if (!allowed) {
+      showAwesomeNotification("Η διεκδίκηση επιτρέπεται μόνο σε χρήστες.",
+          title: "❌ Δεν επιτρέπεται");
+      return;
+    }
+
     try {
       final fileBytes =
           await rootBundle.load('assets/test_files/test_cv_tp.pdf');
@@ -95,13 +103,11 @@ class _ActorProfilePageState extends State<ActorProfilePage> {
       );
 
       await savePendingClaim(widget.actor.id);
-
       setState(() => hasPendingClaim = true);
 
       showAwesomeNotification(
-        "Το αίτημα διεκδίκησης στάλθηκε και θα εξεταστεί από τον διαχειριστή.",
-        title: "✅ Υποβλήθηκε",
-      );
+          "Το αίτημα διεκδίκησης στάλθηκε και θα εξεταστεί από τον διαχειριστή.",
+          title: "✅ Υποβλήθηκε");
     } catch (e) {
       showAwesomeNotification("Σφάλμα κατά την αποστολή", title: "❌ Αποτυχία");
     }

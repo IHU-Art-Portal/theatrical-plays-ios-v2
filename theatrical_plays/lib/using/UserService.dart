@@ -604,7 +604,6 @@ class UserService {
         "Authorization": "Bearer $globalAccessToken",
         "Accept": "application/json"
       });
-      print("🔁 Response για $userId: ${res.statusCode} ${res.body}");
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
@@ -718,6 +717,21 @@ class UserService {
       }
     } catch (e) {
       print("❌ Claim ηθοποιού exception: $e");
+      return false;
+    }
+  }
+
+  static Future<bool> canSubmitClaim() async {
+    try {
+      final user = await fetchUserProfile();
+      if (user == null) return false;
+
+      final role = user['role'] ?? 'Unknown';
+      print("👤 Ρόλος χρήστη: ${user['role']}");
+
+      return role.toLowerCase() == 'user';
+    } catch (e) {
+      print("❌ Σφάλμα στον έλεγχο canSubmitClaim(): $e");
       return false;
     }
   }
