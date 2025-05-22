@@ -560,4 +560,52 @@ class MoviesService {
       return {};
     }
   }
+
+  static Future<List<Map<String, dynamic>>> getVenues() async {
+    final headers = {
+      "Accept": "application/json",
+      "Authorization":
+          "Bearer ${await AuthorizationStore.getStoreValue("authorization")}",
+    };
+
+    final uri =
+        Uri.parse("http://${Constants().hostName}/api/Venues?page=1&size=100");
+    final response = await http.get(uri, headers: headers);
+
+    if (response.statusCode == 200) {
+      final jsonData = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(jsonData['data']['results']);
+    } else {
+      print("Failed to fetch venues: ${response.statusCode}");
+      return [];
+    }
+  }
+
+  static Future<bool> createEvent({
+    required int productionId,
+    required int venueId,
+    required String eventDate,
+    required String priceRange,
+  }) async {
+    final headers = {
+      "Content-Type": "application/json",
+      "Authorization":
+          "Bearer ${await AuthorizationStore.getStoreValue("authorization")}",
+    };
+
+    final body = jsonEncode({
+      "productionId": productionId,
+      "venueId": venueId,
+      "dateEvent": eventDate,
+      "priceRange": priceRange,
+      "systemId": 14, // βάλε το δικό σου ID συστήματος αν διαφέρει
+    });
+
+    final uri = Uri.parse("http://${Constants().hostName}/api/events");
+    final response = await http.post(uri, headers: headers, body: body);
+
+    print("📨 createEvent: ${response.body}");
+
+    return response.statusCode == 200 || response.statusCode == 201;
+  }
 }

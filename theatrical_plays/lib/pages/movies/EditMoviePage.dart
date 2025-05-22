@@ -1,140 +1,164 @@
 import 'package:flutter/material.dart';
-import 'package:awesome_notifications/awesome_notifications.dart';
+import 'package:intl/intl.dart';
 import 'package:theatrical_plays/models/Movie.dart';
-import 'package:theatrical_plays/using/MoviesService.dart'; // Πρόσθεσε αυτό στην αρχή αν δεν υπάρχει
+import 'package:theatrical_plays/using/MoviesService.dart';
 
-// Εδώ θα επεξεργαζόμαστε μια παράσταση (τίτλος, περιγραφή, url κλπ)
 class EditMoviePage extends StatefulWidget {
   final Movie movie;
-
-  const EditMoviePage({super.key, required this.movie});
+  const EditMoviePage({Key? key, required this.movie}) : super(key: key);
 
   @override
   State<EditMoviePage> createState() => _EditMoviePageState();
 }
 
 class _EditMoviePageState extends State<EditMoviePage> {
-  // controllers για τα πεδία που θα αλλάζει ο χρήστης
-  late TextEditingController titleCtrl;
-  late TextEditingController descCtrl;
-  late TextEditingController urlCtrl;
-
-  int? movieEventId;
+  List<Map<String, dynamic>> events = [];
+  List<Map<String, dynamic>> venues = [];
+  int? selectedEventId;
+  String? price;
+  DateTime? selectedDate;
+  int? selectedVenueId;
 
   @override
   void initState() {
     super.initState();
-    loadEventId();
-    // γεμίζουμε τα πεδία με τα υπάρχοντα δεδομένα
-    titleCtrl = TextEditingController(text: widget.movie.title);
-    descCtrl = TextEditingController(text: widget.movie.description);
-    urlCtrl = TextEditingController(text: widget.movie.ticketUrl ?? '');
+    loadData();
   }
 
-  @override
-  void dispose() {
-    titleCtrl.dispose();
-    descCtrl.dispose();
-    urlCtrl.dispose();
-    super.dispose();
+  Future<void> loadData() async {
+    final fetchedEvents =
+        await MoviesService.getEventsForProduction(widget.movie.id);
+    final fetchedVenues = await MoviesService.getVenues();
+
+    setState(() {
+      events = fetchedEvents
+          .map((e) => {
+                "id": e.id,
+                "priceRange": e.priceRange,
+                "venueId": e.venueId,
+                "dateEvent": e.dateEvent,
+              })
+          .toList();
+      venues = fetchedVenues;
+      if (events.isNotEmpty) {
+        final e = events.first;
+        selectedEventId = e['id'];
+        selectedVenueId = e['venueId'];
+        selectedDate = DateTime.tryParse(e['dateEvent']);
+        price = e['priceRange'];
+      }
+    });
   }
 
-  void loadEventId() async {
-    final events = await MoviesService.getEventsForProduction(widget.movie.id);
-    if (events.isNotEmpty) {
-      setState(() {
-        movieEventId = events.first.id; // ή ζήτησε από τον χρήστη να επιλέξει
-      });
-    }
-  }
+  Future<void> updateEvent() async {
+    if (selectedEventId == null) return;
 
-  // helper για ειδοποίηση
-  void notify(String msg) {
-    AwesomeNotifications().createNotification(
-      content: NotificationContent(
-        id: DateTime.now().millisecondsSinceEpoch % 99999,
-        channelKey: 'basic_channel',
-        title: 'Ενημέρωση',
-        body: msg,
-      ),
-    );
-  }
-
-  // τι κάνουμε όταν πατήσει αποθήκευση
-  void save() async {
-    final productionUpdated = await MoviesService.updateProduction(
+    await MoviesService.updateEvent(
+      eventId: selectedEventId!,
+      priceRange: price,
+      eventDate: selectedDate?.toIso8601String(),
+      venueId: selectedVenueId,
       productionId: widget.movie.id,
-      title: titleCtrl.text,
-      description: descCtrl.text,
-      ticketUrl: urlCtrl.text,
-      producer: widget.movie.producer,
-      mediaUrl: widget.movie.mediaUrl,
-      duration: widget.movie.duration,
     );
 
-    final eventId = movieEventId;
-    if (eventId == null) {
-      notify('Δεν βρέθηκε event για την παραγωγή');
-      return;
-    }
-    final eventUpdated = await MoviesService.updateEvent(
-      eventId: eventId,
-      priceRange: widget.movie.priceRange,
-      eventDate: null,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('✅ Το event ενημερώθηκε.')),
+    );
+  }
+
+  Future<void> addNewVenueEvent() async {
+    if (selectedVenueId == null || selectedDate == null) return;
+
+    await MoviesService.createEvent(
       productionId: widget.movie.id,
-      venueId: widget.movie.organizerId,
+      venueId: selectedVenueId!,
+      eventDate: selectedDate!.toIso8601String(),
+      priceRange: price ?? '',
     );
 
-    if (productionUpdated && eventUpdated) {
-      notify('Οι αλλαγές αποθηκεύτηκαν με επιτυχία ✅');
-      Navigator.pop(context);
-    } else {
-      notify('❌ Κάτι πήγε στραβά. Δοκίμασε ξανά.');
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('✅ Προστέθηκε νέα παράσταση.')),
+    );
+
+    await loadData();
   }
 
   @override
   Widget build(BuildContext context) {
+    final dateStr = selectedDate != null
+        ? DateFormat('dd/MM/yyyy').format(selectedDate!)
+        : 'Επιλογή ημερομηνίας';
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Επεξεργασία'),
-        backgroundColor: Colors.black,
-      ),
-      backgroundColor: Colors.black,
+      appBar: AppBar(title: Text('Επεξεργασία Παράστασης')),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
+        child: ListView(
           children: [
-            field(titleCtrl, 'Τίτλος'),
-            const SizedBox(height: 12),
-            field(descCtrl, 'Περιγραφή', lines: 3),
-            const SizedBox(height: 12),
-            field(urlCtrl, 'Link Εισιτηρίων'),
-            const SizedBox(height: 20),
+            DropdownButtonFormField<int>(
+              value: selectedEventId,
+              items: events
+                  .map<DropdownMenuItem<int>>(
+                      (Map<String, dynamic> e) => DropdownMenuItem<int>(
+                            value: e['id'] as int,
+                            child: Text(
+                                "Event ID ${e['id']} - ${e['priceRange'] ?? ''}"),
+                          ))
+                  .toList(),
+              onChanged: (val) {
+                final e = events.firstWhere((e) => e['id'] == val);
+                setState(() {
+                  selectedEventId = val;
+                  price = e['priceRange'];
+                  selectedVenueId = e['venueId'];
+                  selectedDate = DateTime.tryParse(e['dateEvent']);
+                });
+              },
+              decoration: InputDecoration(labelText: "Επιλογή Event"),
+            ),
+            SizedBox(height: 16),
+            DropdownButtonFormField<int>(
+              value: selectedVenueId,
+              items: venues
+                  .map((v) => DropdownMenuItem<int>(
+                        value: v['id'] as int,
+                        child: Text(v['title'] ?? 'Χωρίς τίτλο'),
+                      ))
+                  .toList(),
+              onChanged: (val) => setState(() => selectedVenueId = val),
+              decoration: InputDecoration(labelText: "Χώρος"),
+            ),
+            SizedBox(height: 16),
+            TextFormField(
+              initialValue: price,
+              onChanged: (val) => setState(() => price = val),
+              decoration: InputDecoration(labelText: "Τιμή Εισιτηρίου"),
+            ),
+            SizedBox(height: 16),
             ElevatedButton(
-              onPressed: save,
-              child: const Text('Αποθήκευση'),
+              onPressed: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: selectedDate ?? DateTime.now(),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2030),
+                );
+                if (picked != null) setState(() => selectedDate = picked);
+              },
+              child: Text("Ημερομηνία: $dateStr"),
+            ),
+            SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: updateEvent,
+              child: Text("💾 Ενημέρωση υπάρχοντος Event"),
+            ),
+            SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: addNewVenueEvent,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              child: Text("➕ Προσθήκη νέου χώρου"),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  // μικρό helper για πεδία
-  Widget field(TextEditingController ctrl, String label, {int lines = 1}) {
-    return TextField(
-      controller: ctrl,
-      maxLines: lines,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white70),
-        enabledBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.white30),
-        ),
-        focusedBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.white),
         ),
       ),
     );
